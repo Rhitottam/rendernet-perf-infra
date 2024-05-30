@@ -4,3 +4,4 @@ recording*.webm
 trace*.json
 .idea
 .DS_Store
+.env

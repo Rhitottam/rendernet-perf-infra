@@ -1,6 +1,8 @@
+//adding Puppeteer library
 const pt = require('puppeteer');
 const tracealyzer = require('tracealyzer');
-
+const dotenv = require('dotenv');
+dotenv.config();
 const performZoomIn = async (p, count= 1) => {
   for (let i=0;i<count;i++) {
     await p.waitForSelector('#canvas-zoom-in-tool');
@@ -47,6 +49,12 @@ const performBasicOperations = async (p, start) => {
   await performPan(p, start, [-500, 0]);
   await performZoomOut(p, 2);
 }
+const baseURl = process.env.BASE_URL;
+const loginPath = process.env.LOGIN_PATH;
+const canvasPath = process.env.CANVAS_PATH;
+const canvasId = process.env.CANVAS_ID;
+const email = process.env.EMAIL;
+const password = process.env.PASSWORD;
 
 //launch browser
 const args = [
@@ -64,7 +72,7 @@ const options = {
   args,
   headless: false, // default is true
   slowMo: 50,
-  ignoreDefaultArgs: igrDefaultArgs,
+  // ignoreDefaultArgs: igrDefaultArgs,
   defaultViewport: null, // Launch page in max resolution and disables defaults to an 800x600 viewport
   devtools: false,
   ignoreHTTPSErrors: true,
@@ -79,8 +87,8 @@ pt.launch(options).then(async browser => {
   const traceFileName = `trace-${time}.json`;
   const recordingFileName = `recording-${time}.webm`;
   console.log('Test started -', time);
-  await p.type('#email', 'coolnakul@gmail.com');
-  await p.type('#password', 'haliajuhi');
+  await p.type('#email', email);
+  await p.type('#password', password);
   await p.click('#login-button');
   await p.waitForNavigation();
   const start = performance.now();
