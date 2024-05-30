@@ -104,7 +104,9 @@ const startTest = async (browser, {cpuThrottling, device, networkConditions}={})
   console.log('Recording file name: ', recordingFileName);
   console.log('Trace file name: ', traceFileName);
   // await p.tracing.start({path: 'traces/'+traceFileName});
+  await p.waitForSelector('#email');
   await p.type('#email', process.env.EMAIL);
+  await p.waitForSelector('#password');
   await p.type('#password', process.env.PASSWORD);
   await p.click('#login-button');
   await p.waitForNavigation();

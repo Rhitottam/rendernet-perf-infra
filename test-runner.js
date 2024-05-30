@@ -28,12 +28,19 @@ const runTest = async () => {
   const results = {};
 
   for (const dev of test) {
-    if (commandArguments[0] === 'tldraw') {
-      results[dev.label] = await runTlDrawTest(dev);
-    } else if (commandArguments[0] === 'konva') {
-      results[dev.label] = await runKovaTest(dev);
+    try{
+      if (commandArguments[0] === 'tldraw') {
+        results[dev.label] = await runTlDrawTest(dev);
+      } else if (commandArguments[0] === 'konva') {
+        results[dev.label] = await runKovaTest(dev);
+      }
     }
+    catch (err) {
+      console.error(err);
+    }
+
   }
+  console.log(results);
   try {
     fs.writeFileSync(commandArguments[0]+'.json', JSON.stringify(results), 'utf8');
   } catch (err) {

@@ -11,7 +11,7 @@ const pidusage = require('pidusage');
 const exec = require('child_process').exec;
 
 const runTest = async (runConfig = {}) => {
- await pt.launch(options).then(async browser => {
+ return await pt.launch(options).then(async browser => {
    const {p, traceFileName, recordingFileName} = await startTest(browser, runConfig);
     const {timeToLoad} = await loadCanvasPage(p, '.tl-image');
     console.log('Time taken to load canvas: ', timeToLoad, 'seconds');
