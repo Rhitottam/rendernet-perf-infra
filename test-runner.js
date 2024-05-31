@@ -9,16 +9,16 @@ const devices = [
   },
   {
     label: 'Tablet',
-    // device: 'iPad landscape',
+    device: 'iPad Pro landscape',
     cpuThrottling: 2,
   },
   {
     label: 'Slow Laptop',
-    // device: 'Galaxy S8 landscape',
     cpuThrottling: 4,
   },
   {
     label: 'Slow Tablet',
+    device: 'Galaxy S5 landscape',
     cpuThrottling: 8
   },
 ]

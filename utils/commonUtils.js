@@ -47,13 +47,13 @@ const performPan = async (p, move, diff, count = 1) => {
 const performBasicOperations = async (p, start) => {
   await performZoomIn(p, 2);
   await p.mouse.move(start[0], start[1], {steps: 1});
-  await addTimeout(5000);
+  await addTimeout(1000);
   await performPan(p, start, [-500, 0]);
-  await addTimeout(2000);
+  // await addTimeout(2000);
   await performPan(p, start, [500, 0]);
-  await addTimeout(2000);
+  // await addTimeout(2000);
   await performPan(p, start, [500, 0]);
-  await addTimeout(2000);
+  // await addTimeout(2000);
   await performPan(p, start, [-500, 0]);
   await performZoomOut(p, 2);
 }

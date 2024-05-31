@@ -13,7 +13,7 @@ const runTest = async (runConfig = {}) => {
     const {p, traceFileName, recordingFileName} = await startTest(browser, runConfig);
     const {timeToLoad} = await loadCanvasPage(p, 'canvas');
     console.log('Time taken to load canvas: ', timeToLoad, 'seconds');
-    const recorder = await p.screencast({path: 'recordings/'+recordingFileName, speed: '0.5'});
+    const recorder = await p.screencast({path: 'recordings/'+recordingFileName, speed: '1.2'});
     await p.tracing.start({path: 'traces/'+traceFileName});
     await runCanvasTest(p, 'canvas');
     const usageDetails = await getUsageDetails(browser);
