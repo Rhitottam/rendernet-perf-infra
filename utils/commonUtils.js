@@ -141,6 +141,29 @@ const runCanvasTest = async (p, canvasSelector) => {
   const point = [box.x + box.width / 2, box.y + box.height / 2];
   await performBasicOperations(p, point);
 }
+const runLongCanvasTest = async (browser, p, canvasSelector, timeout) => {
+  const e = await p.$(canvasSelector);
+  const box = await e.boundingBox();
+  const point = [box.x + box.width / 2, box.y + box.height / 2];
+  let start = performance.now();
+  let interval = start;
+  const usageDetailsArray = [];
+  while(true) {
+    await performBasicOperations(p, point);
+    const end = performance.now();
+    if((end-interval)/1000 > 10) {
+      const usageData = await getUsageDetails(browser);
+      usageDetailsArray.push(usageData);
+      interval = end;
+    }
+    if((end-start)/1000 > timeout) {
+      break;
+    }
+  }
+  console.log('long tests stopped');
+ //  await performBasicOperations(p, point);
+  return usageDetailsArray;
+}
 const getUsageDetails =  async (browser) => {
   const browserProcess = await browser.process();
   const tabs = await new Promise((resolve) => {
@@ -164,13 +187,22 @@ const getUsageDetails =  async (browser) => {
 const endTest = async (p, traceFileName, recorder) => {
   await p.tracing.stop();
   const pageMetrics = await p.metrics();
-  const metrics = tracealyzer('traces/'+ traceFileName);
-  await recorder.stop();
+  let metrics = null;
+  if(traceFileName)  metrics = tracealyzer('traces/'+ traceFileName);
+  if(recorder) {
+    await recorder.stop();
+  }
   await p.browser().close();
   return requiredMetrics(metrics, pageMetrics);
 }
 
 const requiredMetrics = (metrics, pageMetrics) => {
+  if (!metrics) {
+    return {
+      'heapTotalSize': pageMetrics['JSHeapTotalSize'],
+      'heapUsedSize': pageMetrics['JSHeapUsedSize'],
+    }
+  }
    return {
      ...metrics.profiling.categories,
      'majorGC': metrics.profiling.events['Major GC'],
@@ -196,6 +228,7 @@ module.exports = {
   startTest,
   loadCanvasPage,
   runCanvasTest,
+  runLongCanvasTest,
   endTest,
   getUsageDetails,
 };

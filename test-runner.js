@@ -1,6 +1,8 @@
 
 const {runTest: runTlDrawTest}= require("./test-tldraw");
 const {runTest: runKovaTest}= require("./test-konva");
+const {runTest: runLongTlDrawTest}= require("./long-test-tldraw");
+const {runTest: runLongKovaTest}= require("./long-test-konva");
 const fs = require('node:fs');
 const devices = [
   {
@@ -30,9 +32,9 @@ const runTest = async () => {
   for (const dev of test) {
     try{
       if (commandArguments[0] === 'tldraw') {
-        results[dev.label] = await runTlDrawTest(dev);
+        results[dev.label] = await runLongTlDrawTest(dev);
       } else if (commandArguments[0] === 'konva') {
-        results[dev.label] = await runKovaTest(dev);
+        results[dev.label] = await runLongKovaTest(dev);
       }
     }
     catch (err) {
