@@ -7,6 +7,49 @@ const pidusage = require('pidusage');
 const exec = require('child_process').exec;
 dotenv.config();
 
+const DB_NAME = 'ImageMetricsDB';
+const STORE_NAME = 'imageLoadTimes';
+const DB_VERSION = 1;
+
+
+
+
+const getAllImageLoadTimes = async (p) => {
+  return await p.evaluate(async () => {
+    const DB_NAME = 'ImageMetricsDB';
+    const STORE_NAME = 'imageLoadTimes';
+    const DB_VERSION = 1;
+    const initDB = () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, {
+              keyPath: 'imageUrl',
+              autoIncrement: true,
+            });
+          }
+        };
+      });
+    };
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  });
+};
+
+
 const addTimeout = async (timeout) => {
   await new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -103,7 +146,7 @@ const startTest = async (browser, {cpuThrottling, device, networkConditions}={})
   const recordingFileName = `recording-${time}.webm`;
   console.log('Recording file name: ', recordingFileName);
   console.log('Trace file name: ', traceFileName);
-  // await p.tracing.start({path: 'traces/'+traceFileName});
+  await p.tracing.start({path: 'traces/'+traceFileName});
   await p.waitForSelector('#email');
   await p.type('#email', process.env.EMAIL);
   await p.waitForSelector('#password');
@@ -112,6 +155,153 @@ const startTest = async (browser, {cpuThrottling, device, networkConditions}={})
   await p.waitForNavigation();
   return {p, traceFileName, recordingFileName};
 }
+
+const  autoScroll = async (page, maxScrolls = 50) => {
+  await page.evaluate(async (maxScrolls) => {
+    await new Promise(async (resolve) => {
+      let totalHeight = 0;
+      let scrolls = 0;  // scrolls counter
+      let timer = setInterval(() => {
+        const studioFeed = document.getElementById('studio_feed_wrapper');
+        if(studioFeed == null) {
+          console.log('feed not found>>>>>>>>>>>>>>');
+        }
+        else {
+          let scrollHeight = studioFeed.scrollHeight;
+          let scrollTop= studioFeed.scrollTop;
+          studioFeed.scrollTop += studioFeed.clientHeight;
+          totalHeight += studioFeed.clientHeight;
+          scrolls++;  // increment counter
+
+          // stop scrolling if reached the end or the maximum number of scrolls
+          if (scrolls >= maxScrolls || scrollTop === studioFeed.scrollTop ) {
+            clearInterval(timer);
+            resolve();
+          }
+        }
+      }, 2000);
+    });
+  }, maxScrolls);  // pass maxScrolls to the function
+}
+const calculateLoadTimeStats = (loadTimes) => {
+  if (!loadTimes || loadTimes.length === 0) {
+    return {
+      average: 0,
+      median: 0,
+      p95: 0,
+      p99: 0,
+      min: 0,
+      max: 0,
+      count: 0
+    };
+  }
+
+  // Extract load times array
+  const times = loadTimes.map(item => item.loadTimeMs);
+
+  // Sort times for percentile calculations
+  const sortedTimes = [...times].sort((a, b) => a - b);
+
+  // Calculate average
+  const average = times.reduce((sum, time) => sum + time, 0) / times.length;
+
+  // Calculate median (p50)
+  const medianIndex = Math.floor(sortedTimes.length / 2);
+  const median = sortedTimes.length % 2 === 0
+    ? (sortedTimes[medianIndex - 1] + sortedTimes[medianIndex]) / 2
+    : sortedTimes[medianIndex];
+
+  // Calculate percentiles
+  const getPercentile = (arr, p) => {
+    const index = Math.ceil((p / 100) * arr.length) - 1;
+    return arr[index];
+  };
+
+  const p95 = getPercentile(sortedTimes, 95);
+  const p99 = getPercentile(sortedTimes, 99);
+
+  return {
+    average: Math.round(average),
+    median: Math.round(median),
+    p95: Math.round(p95),
+    p99: Math.round(p99),
+    min: sortedTimes[0],
+    max: sortedTimes[sortedTimes.length - 1],
+    count: times.length
+  };
+};
+
+const loadAppWebsite = async (p, browser) => {
+  let start = performance.now();
+  await p.goto(process.env.BASE_URL);
+  await p.waitForSelector('#home-page-header');
+  let end = performance.now();
+  const initialLoadTime = end - start;
+  const preReloadUsageData = await getUsageDetails(browser);
+  start = performance.now();
+  await p.reload();
+  await p.waitForSelector('#home-page-header');
+  end = performance.now();
+  const postReloadUsageData = await getUsageDetails(browser);
+  const nextLoadTime = end-start;
+  return {
+    initialLoadTime,
+    preReloadUsageData,
+    nextLoadTime,
+    postReloadUsageData,
+  }
+}
+
+const loadStudioFeedPage = async (p, browser) => {
+  const start = performance.now();
+  await p.goto(process.env.BASE_URL + '/app/text-to-image');
+  await addTimeout(1000);
+  await autoScroll(p);
+  await addTimeout(10000);
+  await p.waitForNetworkIdle({
+    concurrency: 10,
+    idleTime: 500,
+    timeout: 3600000,
+  });
+  const uncachedUsageData = await getUsageDetails(browser);
+  const uncachedLoadTimes = await getAllImageLoadTimes(p);
+  const uncachedLoadTimeStats = calculateLoadTimeStats(uncachedLoadTimes);
+  await p.evaluate(() => {
+    const DB_NAME = 'ImageMetricsDB';
+    indexedDB.deleteDatabase(DB_NAME);
+  })
+  await p.reload();
+  await autoScroll(p);
+  await addTimeout(10000);
+  await p.waitForNetworkIdle({
+    concurrency: 10,
+    idleTime: 500,
+    timeout: 3600000,
+  });
+  const cacheUsageData = await getUsageDetails(browser);
+  const cachedLoadTimes = await getAllImageLoadTimes(p);
+  const cachedLoadTimeStats = calculateLoadTimeStats(cachedLoadTimes);
+  await p.evaluate(() => {
+    const DB_NAME = 'ImageMetricsDB';
+    indexedDB.deleteDatabase(DB_NAME);
+  })
+  await p.waitForNetworkIdle({
+    concurrency: 200,
+    idleTime: 500,
+    timeout: 3600000,
+  });
+
+  const end = performance.now();
+  // await p.click('#canvas-fit-to-screen-tool');
+  return {
+    timeToLoad: (end-start)/1000,
+    uncachedUsageData,
+    cacheUsageData,
+    uncachedLoadTimeStats,
+    cachedLoadTimeStats
+  }
+}
+
 
 const loadCanvasPage = async (p, requiredSelector) => {
   const start = performance.now();
@@ -141,6 +331,7 @@ const runCanvasTest = async (p, canvasSelector) => {
   const point = [box.x + box.width / 2, box.y + box.height / 2];
   await performBasicOperations(p, point);
 }
+
 const runLongCanvasTest = async (browser, p, canvasSelector, timeout) => {
   const e = await p.$(canvasSelector);
   const box = await e.boundingBox();
@@ -227,8 +418,10 @@ module.exports = {
   options,
   startTest,
   loadCanvasPage,
+  loadStudioFeedPage,
   runCanvasTest,
   runLongCanvasTest,
   endTest,
   getUsageDetails,
+  loadAppWebsite
 };
