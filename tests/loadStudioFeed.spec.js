@@ -497,7 +497,7 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
   // const context = await mockAPis(browser);
   // const p = await context.newPage();
   // await mockAPis(p);
-  console.log('running test', browserName, isMobile);
+  console.log(`Running on: ${isMobile ? 'Mobile': 'Desktop'}, Browser: ${browserName === 'webkit' ? 'safari': browserName}`);
   await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
     timeout: 120000,
   });
