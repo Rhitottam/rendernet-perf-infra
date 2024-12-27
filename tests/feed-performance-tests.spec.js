@@ -1,7 +1,7 @@
 // @ts-check
 const { test, beforeEach, beforeAll } = require('@playwright/test');
 const dotenv = require('dotenv');
-const feedData = require('../test-data/canvasData.json');
+// const feedData = require('../test-data/canvasData.json');
 
 
 const autoScroll =  async (p, maxScrolls) => {
@@ -319,40 +319,40 @@ const getBlockingTimeData = async (p) => {
 }
 
 
-const mockAPisWithContext = async (browser) => {
-  const context = await browser.newContext();
-  await context.route(/.*\.(png|webp)/, async route => {
-    await route.abort();
-  });
-  await context.route(/.*\/app\/v1\/media\/studio\/feed\?page=1&page_size=20\.*/,  async route => {
-    const json = feedData;
-    console.log('normal');
-    await route.abort();
-  });
-  await context.route('*/**/app/v1/media/studio/feed?page=2&page_size=20',  async route => {
-    const json = { data: [], err: {}};
-    await route.fulfill({ json });
-  });
-  await context.route(/.*\/app\/v1\/media\/studio\/feed\.*/, async route => {
-    const json = feedData;
-    console.log('absolute');
-    await route.fulfill({ json });
-  });
-  return context;
-}
-
-const mockAPis = async (page) => {
-  // const context = await browser.newContext();
-  await page.route(/.*\.(png|webp)/, async route => {
-    console.log('image')
-    await route.abort();
-  });
-  await page.route(/.*\/studio\/feed\?page=1&page_size=20\.*/,  async route => {
-    const json = feedData;
-    console.log('normal');
-    await route.abort();
-  });
-}
+// const mockAPisWithContext = async (browser) => {
+//   const context = await browser.newContext();
+//   await context.route(/.*\.(png|webp)/, async route => {
+//     await route.abort();
+//   });
+//   await context.route(/.*\/app\/v1\/media\/studio\/feed\?page=1&page_size=20\.*/,  async route => {
+//     const json = feedData;
+//     console.log('normal');
+//     await route.abort();
+//   });
+//   await context.route('*/**/app/v1/media/studio/feed?page=2&page_size=20',  async route => {
+//     const json = { data: [], err: {}};
+//     await route.fulfill({ json });
+//   });
+//   await context.route(/.*\/app\/v1\/media\/studio\/feed\.*/, async route => {
+//     const json = feedData;
+//     console.log('absolute');
+//     await route.fulfill({ json });
+//   });
+//   return context;
+// }
+//
+// const mockAPis = async (page) => {
+//   // const context = await browser.newContext();
+//   await page.route(/.*\.(png|webp)/, async route => {
+//     console.log('image')
+//     await route.abort();
+//   });
+//   await page.route(/.*\/studio\/feed\?page=1&page_size=20\.*/,  async route => {
+//     const json = feedData;
+//     console.log('normal');
+//     await route.abort();
+//   });
+// }
 
 const addFPSCounter = async (page) => {
   await page.evaluate(() => {
