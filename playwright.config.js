@@ -22,7 +22,7 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { open: 'never' }]
+    ['html', { open: 'always' }]
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -31,7 +31,11 @@ module.exports = defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-  },
+    video: {
+      mode: 'on',
+      size: { width: 640, height: 480 }
+    }
+},
   timeout: 3600000,
   /* Configure projects for major browsers */
   projects: [
