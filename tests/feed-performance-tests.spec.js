@@ -506,17 +506,25 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, maxScrolls 
 
 const performZoomIn = async (p, count= 1) => {
   for (let i=0;i<count;i++) {
-    await p.waitForSelector('#canvas-zoom-in-tool');
-    await p.click('#canvas-zoom-in-tool');
-    await p.waitForTimeout(1000);
+    // await p.waitForSelector('#canvas-zoom-in-tool');
+    await p.keyboard.down('Control');
+    await p.mouse.wheel(0, -200);
+    await p.mouse.wheel(0, -200);
+    await p.keyboard.up('Control');
+    // await p.click('#canvas-zoom-in-tool');
+    // await p.waitForTimeout(1000);
   }
 }
 
 const performZoomOut = async (p, count = 1) => {
   for (let i=0;i<count;i++) {
-    await p.waitForSelector('#canvas-zoom-out-tool');
-    await p.click('#canvas-zoom-out-tool');
-    await p.waitForTimeout(1000);
+    // await p.waitForSelector('#canvas-zoom-out-tool');
+    // await p.click('#canvas-zoom-out-tool');
+    // await p.waitForTimeout(1000);
+    await p.keyboard.down('Control');
+    await p.mouse.wheel(0, 200);
+    await p.mouse.wheel(0, 200);
+    await p.keyboard.up('Control');
   }
 }
 
@@ -524,18 +532,18 @@ const performBasicCanvasOperations = async (p, start, count=1) => {
   for (let i=0;i<count;i++) {
     await performZoomIn(p, 2);
     await p.mouse.move(start[0], start[1], {steps: 2});
-    await performPan(p, start, [-200, 0]);
+    await performPan(p, start, [-400, 0]);
     // await addTimeout(2000);
-    await performPan(p, start, [200, 0]);
+    await performPan(p, start, [400, 0]);
     // await addTimeout(2000);
     await performPan(p, start, [0, -200]);
     // await addTimeout(2000);
     await performPan(p, start, [0, 200]);
     await performZoomOut(p, 2);
     await p.mouse.move(start[0], start[1], {steps: 2});
-    await performPan(p, start, [-100, 0]);
+    await performPan(p, start, [-200, 0]);
     // await addTimeout(2000);
-    await performPan(p, start, [100, 0]);
+    await performPan(p, start, [200, 0]);
     // await addTimeout(2000);
     await performPan(p, start, [0, -100]);
     // await addTimeout(2000);
@@ -610,7 +618,7 @@ const getCanvasFeedAndPerformOperations = async (p, navigationType, operationsRe
   readings.minLoadFPS = fpsCounterData.minFps;
   readings.maxLoadFPS = fpsCounterData.maxFps;
   await clearFPSCounter(p);
-  readings.canvasImageLoadTime = await periodicCheckForCanvasImagesCompletion(p);
+  // readings.canvasImageLoadTime = await periodicCheckForCanvasImagesCompletion(p);
   const e = await p.$('.tl-canvas');
   const box = await e.boundingBox();
   const point = [box.x + box.width / 2, box.y + box.height / 2];
