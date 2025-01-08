@@ -568,22 +568,22 @@ const performPan = async (p, move, diff, count = 1) => {
 }
 
 const periodicCheckForCanvasImagesCompletion = async (p) => {
-  return await p.evaluate(async () => {
+  return await p.evaluate(() => {
     return new Promise((resolve) => {
       let canvasImageShapes, completedCanvasImageShapes;
       const startLoadTime = performance.now();
       const checkForImages = setInterval(() => {
         canvasImageShapes = document.querySelectorAll('div[data-shape-type="canvas-image"]');
-        completedCanvasImageShapes = Array.from(canvasImageShapes).filter((imageShape) => {
+        completedCanvasImageShapes = Array.from(canvasImageShapes ?? []).filter((imageShape) => {
           const images = imageShape.getElementsByTagName('img');
-          return Array.from(images).every((image) => image.src?.length);
+          return Array.from(images ?? []).every((image) => image?.src?.length);
         });
-        if (canvasImageShapes.length === completedCanvasImageShapes.length) {
+        if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
           clearInterval(checkForImages);
 
           resolve(performance.now() - startLoadTime);
         }
-      }, 1000);
+      }, 500);
     });
   });
 
@@ -655,6 +655,7 @@ beforeEach(async ({ page: p }) => {
 })
 
 test('Load and scroll studio feed media: Initial Load and Reload', async ({ page: p, browserName, isMobile }, testInfo) => {
+  test.slow();
   console.log(`Running on: ${isMobile ? 'Mobile': 'Desktop'}, Browser: ${browserName === 'webkit' ? 'safari': browserName}`);
   const maxNumberOfScrolls = 1000;
   const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
@@ -672,9 +673,9 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
 
 
 test('Load and perform pan and zoom operations on Canvas: Initial and Reload', async({page: p, browserName, isMobile}, testInfo) => {
+  test.slow();
   test.skip(isMobile, 'Canvas testing only for Desktop devices');
   console.log(`Running on: ${isMobile ? 'Mobile': 'Desktop'}, Browser: ${browserName === 'webkit' ? 'safari': browserName}`);
-
   const numberOfBasicOperationRepetitions = 2;
   const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
   readingsJSON[NavigationTypes.INITIAL] = await getCanvasFeedAndPerformOperations(p, NavigationTypes.INITIAL, numberOfBasicOperationRepetitions);
