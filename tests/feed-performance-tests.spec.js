@@ -3,18 +3,85 @@ const { test, beforeEach, beforeAll } = require('@playwright/test');
 const dotenv = require('dotenv');
 // const feedData = require('../test-data/canvasData.json');
 
+const autoScroll = async (p, maxScrolls) => {
+  await p.evaluate(async (maxScrolls) => {
+    await new Promise(async (resolve) => {
+      let totalHeight = 0;
+      let scrolls = 0;
+      let scrollHeight, scrollTop;
+      let lastTime = 0;
+      let animationFrameId = null;
+      let isRunning = true;  // Flag to control animation
 
-const autoScroll =  async (p, maxScrolls) => {
+      function scroll(currentTime) {
+        if (!isRunning) {
+          return;  // Exit if animation should stop
+        }
+
+        // Throttle to roughly match the original 1000ms interval
+        if (currentTime - lastTime < 1000) {
+          animationFrameId = requestAnimationFrame(scroll);
+          return;
+        }
+
+        lastTime = currentTime;
+        const studioFeed = document.getElementById('studio_feed_wrapper');
+
+        if (studioFeed != null) {
+          scrollHeight = studioFeed.scrollHeight;
+          scrollTop = studioFeed.scrollTop;
+          studioFeed.scrollTop += studioFeed.clientHeight;
+          totalHeight += studioFeed.clientHeight;
+          scrolls++;
+
+          // stop scrolling if reached the end or the maximum number of scrolls
+          if (scrolls >= maxScrolls || scrollTop === studioFeed.scrollTop) {
+            cleanup();
+            resolve();
+            return;
+          }
+
+          animationFrameId = requestAnimationFrame(scroll);
+        }
+      }
+
+      // Cleanup function to prevent memory leaks
+      function cleanup() {
+        isRunning = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        // Clear references
+        scrollHeight = null;
+        scrollTop = null;
+        totalHeight = 0;
+        scrolls = 0;
+      }
+
+      // Start the animation
+      animationFrameId = requestAnimationFrame(scroll);
+
+      // Add cleanup on page unload/navigation
+      window.addEventListener('unload', cleanup, { once: true });
+    });
+
+  }, maxScrolls);
+
+}
+
+const autoScrollAlt =  async (p, maxScrolls) => {
   await p.evaluate(async (maxScrolls) => {
     await new Promise(async (resolve) => {
       let totalHeight = 0;
       let scrolls = 0;  // scrolls counter
+      let scrollHeight, scrollTop;
       let timer = setInterval(() => {
         const studioFeed = document.getElementById('studio_feed_wrapper');
 
         if(studioFeed != null) {
-          let scrollHeight = studioFeed.scrollHeight;
-          let scrollTop= studioFeed.scrollTop;
+          scrollHeight = studioFeed.scrollHeight;
+          scrollTop= studioFeed.scrollTop;
           studioFeed.scrollTop += studioFeed.clientHeight;
           totalHeight += studioFeed.clientHeight;
           scrolls++;  // increment counter
@@ -25,7 +92,7 @@ const autoScroll =  async (p, maxScrolls) => {
             resolve();
           }
         }
-      }, 2000);
+      }, 1000);
     });
   }, maxScrolls);
 }
@@ -570,6 +637,57 @@ const performPan = async (p, move, diff, count = 1) => {
 const periodicCheckForCanvasImagesCompletion = async (p) => {
   return await p.evaluate(() => {
     return new Promise((resolve) => {
+      const startLoadTime = performance.now();
+      let animationFrameId = null;
+      let isRunning = true;
+      let lastTime = 0;
+
+      function checkForImages(currentTime) {
+        if (!isRunning) {
+          return;
+        }
+
+        // Throttle to match original 500ms interval
+        if (currentTime - lastTime < 500) {
+          animationFrameId = requestAnimationFrame(checkForImages);
+          return;
+        }
+
+        lastTime = currentTime;
+        const canvasImageShapes = document.querySelectorAll('div[data-shape-type="canvas-image"]');
+        const completedCanvasImageShapes = Array.from(canvasImageShapes ?? []).filter((imageShape) => {
+          const images = imageShape.getElementsByTagName('img');
+          return Array.from(images ?? []).every((image) => image?.src?.length);
+        });
+
+        if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
+          cleanup();
+          resolve(performance.now() - startLoadTime);
+          return;
+        }
+
+        animationFrameId = requestAnimationFrame(checkForImages);
+      }
+
+      function cleanup() {
+        isRunning = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+      // Start the animation
+      animationFrameId = requestAnimationFrame(checkForImages);
+
+      // Add cleanup on page unload
+      window.addEventListener('unload', cleanup, { once: true });
+    });
+  });
+}
+
+const periodicCheckForCanvasImagesCompletionAlt = async (p) => {
+  return await p.evaluate(() => {
+    return new Promise((resolve) => {
       let canvasImageShapes, completedCanvasImageShapes;
       const startLoadTime = performance.now();
       const checkForImages = setInterval(() => {
@@ -586,7 +704,6 @@ const periodicCheckForCanvasImagesCompletion = async (p) => {
       }, 500);
     });
   });
-
 }
 
 const getCanvasFeedAndPerformOperations = async (p, navigationType, operationsRepeat= 1) => {
