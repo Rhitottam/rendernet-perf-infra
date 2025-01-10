@@ -634,6 +634,40 @@ const performPan = async (p, move, diff, count = 1) => {
   }
 }
 
+const checkForCanvasImagesCompletion = async (p) => {
+ return await p.evaluate(() => {
+    return new Promise((cb, reject) => {
+        const canvasImageShapes = document.querySelectorAll('div[data-shape-type="canvas-image"]');
+        const completedCanvasImageShapes = Array.from(canvasImageShapes ?? []).filter((imageShape) => {
+          const images = imageShape.getElementsByTagName('img');
+          return Array.from(images ?? []).every((image) => image?.src?.length);
+        });
+        if (canvasImageShapes?.length <= completedCanvasImageShapes?.length + 20) {
+          cb({isComplete: true, ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`});
+        }
+        else {
+          cb({isComplete: false, ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`});
+        }
+    });
+  });
+}
+
+const periodicCheckForCanvasImagesCompletionLoop = async (p) => {
+  const startTime = performance.now();
+  while(true) {
+    const data = await checkForCanvasImagesCompletion(p);
+    const {isComplete} = data ?? {};
+    if(isComplete) {
+      break;
+    }
+    else {
+      await p.waitForTimeout(1000);
+    }
+  }
+  const endTime = performance.now();
+  return endTime - startTime;
+}
+
 const periodicCheckForCanvasImagesCompletion = async (p) => {
   return await p.evaluate(() => {
     return new Promise((resolve) => {
@@ -665,6 +699,7 @@ const periodicCheckForCanvasImagesCompletion = async (p) => {
           resolve(performance.now() - startLoadTime);
           return;
         }
+
 
         animationFrameId = requestAnimationFrame(checkForImages);
       }
@@ -735,7 +770,7 @@ const getCanvasFeedAndPerformOperations = async (p, navigationType, operationsRe
   readings.minLoadFPS = fpsCounterData.minFps;
   readings.maxLoadFPS = fpsCounterData.maxFps;
   await clearFPSCounter(p);
-  readings.canvasImageLoadTime = await periodicCheckForCanvasImagesCompletion(p);
+  readings.canvasImageLoadTime = await periodicCheckForCanvasImagesCompletionLoop(p);
   const e = await p.$('.tl-canvas');
   const box = await e.boundingBox();
   const point = [box.x + box.width / 2, box.y + box.height / 2];
@@ -776,7 +811,30 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
   console.log(`Running on: ${isMobile ? 'Mobile': 'Desktop'}, Browser: ${browserName === 'webkit' ? 'safari': browserName}`);
   const maxNumberOfScrolls = 1000;
   const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
+  const imageLoadTimes = {};
+
+  // Listen to network requests before navigating
+  await p.route('**/*.{png,jpg,jpeg,gif,webp}', async (route, request) => {
+    const startTime = Date.now();
+
+    // Continue the request while measuring
+    const response = await route.fetch();
+    const endTime = Date.now();
+
+    const loadTime = endTime - startTime;
+    const size = (await response.body()).length;
+
+    imageLoadTimes[request.url()] = ({
+      url: request.url(),
+      loadTime,
+      size,
+      startTime
+    });
+
+    await route.fulfill({ response });
+  });
   readingsJSON[NavigationTypes.INITIAL] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.INITIAL, maxNumberOfScrolls);
+  console.log(imageLoadTimes);
   await p.waitForTimeout(1000);
   readingsJSON[NavigationTypes.RELOAD] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.RELOAD, maxNumberOfScrolls);
   console.log(readingsJSON);
