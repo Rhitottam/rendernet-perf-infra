@@ -1,11 +1,12 @@
-const {test} = require("@playwright/test");
+const {test, beforeEach} = require("@playwright/test");
 const {
   addFPSCounter,
   clearFPSCounter, constructInitialReadingsJson, createPerformanceTestReadingsJSON, getBlockingTimeData,
   getFPSCounterData,
   getLargestContentfulPaintData, getNavigationTimingData, getPaintTimingData, NavigationTypes,
-  performBasicCanvasOperations, periodicCheckForCanvasImagesCompletionLoop, runFPSCounter
-} = require("./utils/utils");
+  performBasicCanvasOperations, periodicCheckForCanvasImagesCompletionLoop, runFPSCounter,
+  increaseResourceTimingBufferSize
+} = require("./utils/utils.js");
 
 const getCanvasFeedAndPerformOperations = async (p, navigationType, operationsRepeat= 1) => {
   const readings = {}
@@ -65,7 +66,20 @@ const navigateToCanvasPage = async (p) => {
   await p.waitForSelector('#canvas-image-wrapper');
   await p.click('#canvas-image-wrapper');
 }
-
+beforeEach(async ({ page: p }) => {
+  await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
+    timeout: 120000,
+  });
+  await increaseResourceTimingBufferSize(p);
+  await p.waitForSelector('#email');
+  await p.focus('#email');
+  await p.keyboard.type(process.env.EMAIL);
+  await p.focus('#password');
+  await p.keyboard.type(process.env.PASSWORD);
+  await p.click('#login-button');
+  await p.waitForURL(process.env.BASE_URL);
+  await p.waitForTimeout(500);
+})
 test('Load and perform pan and zoom operations on Canvas: Initial and Reload', async({page: p, browserName, isMobile}, testInfo) => {
   test.slow();
   test.skip(isMobile, 'Canvas testing only for Desktop devices');
