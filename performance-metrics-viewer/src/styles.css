@@ -1,0 +1,73 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+/* Custom dotted pattern background */
+.bg-dotted {
+    position: relative;
+    background-color: #e5e5f7;
+    opacity: 1;
+    background-image: radial-gradient(#444cf7 0.5px, #e5e5f7 0.5px);
+    background-size: 10px 10px;
+}
+
+
+/* Optional: Add animation to gradient text */
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bg-gradient-to-r {
+    background-size: 200% auto;
+    animation: gradient 4s ease infinite;
+}
+
+.values-table {
+    margin-top: 15px;
+    padding: 10px;
+    border-top: 1px solid #eee;
+}
+
+.values-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.values-table th,
+.values-table td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid #eee;
+}
+
+.values-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
+.values-table tr:nth-child(1) td {
+    background-color: rgba(255, 99, 132, 0.1);
+}
+
+.values-table tr:nth-child(2) td {
+    background-color: rgba(53, 162, 235, 0.1);
+}
+
+@media (max-width: 768px) {
+    .values-table {
+        font-size: 12px;
+    }
+
+    .values-table th,
+    .values-table td {
+        padding: 6px 4px;
+    }
+}

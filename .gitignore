@@ -6,6 +6,6 @@ trace*.json
 .DS_Store
 .env
 /test-results/
-/playwright-report/
+/playwright-report-studio-feed-virtual-opt/
 /blob-report/
 /playwright/.cache/
