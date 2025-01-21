@@ -77,10 +77,11 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, maxScrolls 
   readings.minScrollFPS = fpsCounterDataScroll.minFps;
   readings.maxScrollFPS = fpsCounterDataScroll.maxFps;
   await clearFPSCounter(p);
-  await p.waitForTimeout(2000);
+  await p.waitForTimeout(3000);
   const imageLoadTimes = await getAllImageLoadTimes(p);
-  // await clearLoadTimes(p);
   readings.imageLoadTimeStats = calculateLoadTimeStats(imageLoadTimes);
+  await clearLoadTimes(p);
+  await p.waitForTimeout(3000);
   return readings;
 }
 
@@ -106,7 +107,13 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
   const maxNumberOfScrolls = 1000;
   const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
   readingsJSON[NavigationTypes.INITIAL] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.INITIAL, maxNumberOfScrolls);
-  await p.waitForTimeout(1000);
+  const serviceWorkerUnregisterStatus = await p.evaluate(async () => {
+    return await navigator.serviceWorker.getRegistration().then(function(registration) {
+      return registration.unregister();
+    });
+  });
+  console.log('ServiceWorker Unregister Status', serviceWorkerUnregisterStatus);
+  await p.reload();
   readingsJSON[NavigationTypes.RELOAD] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.RELOAD, maxNumberOfScrolls);
   console.log(readingsJSON);
   test.info().annotations.push({

@@ -488,7 +488,7 @@ const addFPSCounter = async (page) => {
             fpsCount = fpsMeasurements.count + 1;
             minFps = Math.min(fpsMeasurements.minFps, fps);
             maxFps = Math.max(fpsMeasurements.maxFps, fps);
-            localStorage.setItem('fps-measurements', JSON.stringify({ averageFps, minFps, maxFps, count: fpsCount }));
+            window.localStorage.setItem('fps-measurements', JSON.stringify({ averageFps, minFps, maxFps, count: fpsCount }));
           }
         }
 
@@ -511,13 +511,13 @@ const runFPSCounter = async (page) => {
 
 const clearFPSCounter = async (page) => {
   await page.evaluate(() => {
-    localStorage.removeItem('fps-measurements');
+    window.localStorage.removeItem('fps-measurements');
   });
 }
 
 const getFPSCounterData = async (page) => {
   return await page.evaluate(() => {
-    return JSON.parse(localStorage.getItem('fps-measurements') ?? '{}');
+    return JSON.parse(window.localStorage.getItem('fps-measurements') ?? '{}');
   });
 }
 
@@ -724,7 +724,6 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
     'utf-8'
   );
 }
-
 
 module.exports = {
   autoScroll,
