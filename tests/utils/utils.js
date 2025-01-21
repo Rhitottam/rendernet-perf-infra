@@ -1,7 +1,7 @@
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
-const autoScroll = async (p, maxScrolls) => {
+const autoScrollEval = async (p, maxScrolls) => {
   await p.evaluate(async (maxScrolls) => {
     await new Promise(async (resolve) => {
       let totalHeight = 0;
@@ -66,6 +66,45 @@ const autoScroll = async (p, maxScrolls) => {
 
   }, maxScrolls);
 
+}
+
+const autoScrollOnce = async (p) => {
+    return await p.evaluate(async () => {
+      return await new Promise(async (resolve) => {
+        let totalHeight = 0;
+        let scrolls = 0;  // scrolls counter
+        let scrollHeight, scrollTop;
+        const studioFeed = document.getElementById('studio_feed_wrapper');
+
+        if (studioFeed != null) {
+          scrollTop = studioFeed.scrollTop;
+          studioFeed.scrollTop += studioFeed.clientHeight;
+          scrolls++;  // increment counter
+
+          // stop scrolling if reached the end or the maximum number of scrolls
+          if (scrollTop === studioFeed.scrollTop) {
+            resolve(true);
+          }
+          else {
+            resolve(false);
+          }
+        }
+        resolve(false);
+      });
+    });
+}
+
+const autoScroll =  async (p, maxScrolls) => {
+  let i = 0;
+  while(i<maxScrolls) {
+    const isEnd = await autoScrollOnce(p);
+    if(isEnd) {
+      break;
+    }
+    console.log('scrolling... ', i);
+    i++;
+    await p.waitForTimeout(2000);
+  }
 }
 
 const autoScrollAlt =  async (p, maxScrolls) => {
