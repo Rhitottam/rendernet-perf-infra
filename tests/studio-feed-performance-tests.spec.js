@@ -79,7 +79,7 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, maxScrolls 
   await clearFPSCounter(p);
   await p.waitForTimeout(2000);
   const imageLoadTimes = await getAllImageLoadTimes(p);
-  await clearLoadTimes(p);
+  // await clearLoadTimes(p);
   readings.imageLoadTimeStats = calculateLoadTimeStats(imageLoadTimes);
   return readings;
 }
