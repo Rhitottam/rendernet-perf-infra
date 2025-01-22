@@ -17,6 +17,14 @@ const TEST_NAMES = [
   }
 ];
 
+// You can move this to a configuration file or fetch from API
+const APP_URLS = [
+  { name: 'Base App Unoptimized', url: 'https://rendernet-stg--pr1552-testing-studio-loadi-qmk6y8jg.web.app/' },
+  { name: 'App with Studio Optimized', url: 'https://rendernet-stg--pr1607-testing-studio-loadi-4qy3lijb.web.app/' },
+  { name: 'App with Canvas Optimized', url: 'https://rendernet-stg--pr1606-testing-canvas-loadi-attts81l.web.app/' },
+  // Add more URLs as needed
+];
+
 function ScriptExecutionSection() {
   const [appUrl, setAppUrl] = useState('');
   const [testName, setTestName] = useState(null);
@@ -24,6 +32,25 @@ function ScriptExecutionSection() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [copyStatus, setCopyStatus] = useState({});
+
+  const handleCopy = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyStatus(prev => ({ ...prev, [url]: true }));
+
+      // Reset copy status after 2 seconds
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, [url]: false }));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleUrlClick = (url) => {
+    setAppUrl(url);
+  };
 
   const handleExecute = async () => {
     try {
@@ -56,6 +83,56 @@ function ScriptExecutionSection() {
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900">Script Execution</h2>
       </div>
+
+      <div className="px-6 py-4 border-b border-gray-200 bg-blue-200 bg-opacity-70">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Available App URLs</h3>
+        <div className="grid gap-2">
+          {APP_URLS.map(({name, url}) => (
+            <div
+              key={url}
+              className="flex items-center justify-between p-2 bg-white rounded-md border border-gray-200 hover:border-primary-300 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {name}
+                </p>
+                <p
+                  className="text-sm text-gray-500 truncate cursor-pointer hover:text-primary-600"
+                  onClick={() => handleUrlClick(url)}
+                >
+                  {url}
+                </p>
+              </div>
+              <button
+                onClick={() => handleCopy(url)}
+                className={`ml-4 px-3 py-1 text-xs font-medium rounded-md 
+                  ${copyStatus[url]
+                  ? 'bg-green-50 text-green-600'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                } transition-colors duration-200`}
+              >
+                {copyStatus[url] ? (
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Copied!
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                            d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                    </svg>
+                    Copy
+                  </span>
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="p-6 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -110,7 +187,7 @@ function ScriptExecutionSection() {
 
         <button
           onClick={handleExecute}
-          disabled={!appUrl ||  ! testName || loading}
+          disabled={!appUrl || !testName || loading}
           className="px-4 py-2 text-sm font-medium text-white bg-primary-600
                    rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2
                    focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50
