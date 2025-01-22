@@ -715,7 +715,7 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
   }
 
   // Write JSON file
-  const fileName = `test-data-${label}-${(new Date().toDateString().replaceAll(/\s+/g, '-'))}.json`;
+  const fileName = `test-data-${label}-${process.env.BASE_URL}-${(new Date().toUTCString().replaceAll(/\s+/g, '-'))}.json`;
   const filePath = path.join(resultsDir, fileName);
 
   fs.writeFileSync(

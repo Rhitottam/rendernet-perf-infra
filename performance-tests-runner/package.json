@@ -1,0 +1,11 @@
+{
+  "name": "script-execution-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.5.1",
+    "express-basic-auth": "^1.2.1",
+    "uuid": "^8.3.2"
+  }
+}

@@ -95,6 +95,7 @@ test('Load and perform pan and zoom operations on Canvas: Initial and Reload', a
     description: 'Load and perform pan and zoom operations on Canvas: Initial and Reload',
     performanceTestReadings: readingsJSON
   });
-  createPerformanceTestReadingsJSON('canvas-feed-performance-test-readings', readingsJSON);
+
+  createPerformanceTestReadingsJSON(`canvas-feed-performance-test-readings`, readingsJSON);
   await testInfo.attach(`canvas-feed-performance-test-readings-${readingsJSON.label}`, { body: JSON.stringify(readingsJSON), contentType: 'application/json' });
 });
