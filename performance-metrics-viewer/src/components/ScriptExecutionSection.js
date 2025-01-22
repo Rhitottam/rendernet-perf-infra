@@ -81,7 +81,7 @@ function ScriptExecutionSection() {
   return (
     <section className="bg-opacity-70 bg-blue-300 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">Script Execution</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Run Performance Tests</h2>
       </div>
 
       <div className="px-6 py-4 border-b border-gray-200 bg-blue-200 bg-opacity-70">

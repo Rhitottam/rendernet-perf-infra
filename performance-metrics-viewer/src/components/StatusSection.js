@@ -30,7 +30,7 @@ function StatusSection() {
   return (
     <section className="bg-opacity-70 bg-red-200 rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900">Status</h2>
+        <h2 className="text-xl font-semibold text-gray-900">View Test Logs</h2>
       </div>
       <div className="p-6 space-y-4">
         <button
