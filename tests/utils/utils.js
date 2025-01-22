@@ -715,7 +715,7 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
   }
 
   // Write JSON file
-  const fileName = `test-data-${label}-${process.env.BASE_URL.split(/(http|https):\/\//)[1].split(/\//)[0]}-${(new Date().toUTCString().replaceAll(/\s+/g, '-'))}.json`;
+  const fileName = `test-data-${label}-${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}-${(new Date().toUTCString().replaceAll(/\s+/g, '-'))}.json`;
   const filePath = path.join(resultsDir, fileName);
 
   fs.writeFileSync(

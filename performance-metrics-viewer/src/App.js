@@ -13,7 +13,7 @@ function App() {
               App Performance Metrics Infra
             </span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-700 max-w-2xl mx-auto">
             View/Compare performance metrics and web vitals for different test runs.
           </p>
         </div>

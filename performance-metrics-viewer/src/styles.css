@@ -4,10 +4,14 @@
 /* Custom dotted pattern background */
 .bg-dotted {
     position: relative;
-    background-color: #e5e5f7;
-    opacity: 1;
-    background-image: radial-gradient(#444cf7 0.5px, #e5e5f7 0.5px);
-    background-size: 10px 10px;
+    --dot-bg: white;
+    --dot-color: #410093;
+    --dot-size: 1px;
+    --dot-space: 22px;
+    background:
+            linear-gradient(90deg, var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+            linear-gradient(var(--dot-bg) calc(var(--dot-space) - var(--dot-size)), transparent 1%) center / var(--dot-space) var(--dot-space),
+            var(--dot-color);
 }
 
 
