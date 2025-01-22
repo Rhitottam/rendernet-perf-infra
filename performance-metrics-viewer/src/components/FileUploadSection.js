@@ -1,10 +1,47 @@
+import {getBasicAuthHeaders} from "../utils/auth";
 import React, { useState, useRef } from 'react';
 
 function FileUploadSection({ label, onDataUpload }) {
   const [jsonText, setJsonText] = useState('');
   const [error, setError] = useState('');
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
+  const [options, setOptions] = useState([]);
+  const [selectedOption, setSelectedOption] = useState('');
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  const fetchOptions = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const response = await fetch('http://ec2-54-209-103-199.compute-1.amazonaws.com/test-readings',{
+        headers: getBasicAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch options');
+      }
+
+      const data = await response.json();
+      setOptions(Object.entries(data).map(([key, value]) => ({
+        key,
+        value
+      })));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOptionSelect = (event) => {
+    const selected = options.find(opt => opt.key === event.target.value);
+    setSelectedOption(event.target.value);
+    if (selected) {
+      onDataUpload([selected.value]);
+      setHasUploadedFiles(true);
+    }
+  };
 
   const handleFileChange = async (event) => {
     const files = Array.from(event.target.files);
@@ -70,6 +107,33 @@ function FileUploadSection({ label, onDataUpload }) {
       </div>
       <div className="p-4 space-y-4">
         <div>
+          <div className="grid gap-2 items-center mb-4" style={{
+            gridTemplateColumns: 'repeat(1, minmax(0, 0.5fr)) repeat(1, minmax(0, 1fr))'
+          }}>
+            <button
+              onClick={fetchOptions}
+              disabled={loading}
+              className="px-3 py-2 text-sm font-medium text-primary-600 bg-primary-50
+                       rounded-md hover:bg-primary-100 focus:outline-none focus:ring-2
+                       focus:ring-offset-2 focus:ring-primary-500"
+            >
+              {loading ? 'Loading...' : 'Load Readings'}
+            </button>
+            <select
+              value={selectedOption}
+              onChange={handleOptionSelect}
+              disabled={options.length === 0}
+              className="flex-grow px-3 py-2 border border-gray-300 rounded-md
+                       focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="">Select a test reading</option>
+              {options.map(option => (
+                <option key={option.key} value={option.key}>
+                  {option.key}
+                </option>
+              ))}
+            </select>
+          </div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Upload JSON Files
           </label>

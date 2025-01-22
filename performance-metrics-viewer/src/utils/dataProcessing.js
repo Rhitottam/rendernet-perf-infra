@@ -1,6 +1,6 @@
 export function processMetricsData(unoptimizedFiles, optimizedFiles) {
-  const unoptimizedAvg = calculateAverages(unoptimizedFiles);
-  const optimizedAvg = calculateAverages(optimizedFiles);
+  const unoptimizedAvg = calculateAverages(unoptimizedFiles ?? []);
+  const optimizedAvg = calculateAverages(optimizedFiles ?? []);
 
   return createMetricsConfig(unoptimizedAvg, optimizedAvg);
 }
@@ -48,8 +48,8 @@ function createMetricsConfig(unoptimized, optimized) {
 
   // Get all unique metric keys
   const metricKeys = new Set([
-    ...Object.keys(unoptimized.initial),
-    ...Object.keys(unoptimized.reload)
+    ...(Object.keys(unoptimized.initial).length > 0 ? Object.keys(unoptimized.initial) : Object.keys(optimized.initial)),
+    ...(Object.keys(unoptimized.reload).length > 0  ? Object.keys(unoptimized.initial) : Object.keys(optimized.initial))
   ]);
 
   metricKeys.forEach(key => {
@@ -68,14 +68,14 @@ function createMetricsConfig(unoptimized, optimized) {
       datasets: [
         {
           label: 'Unoptimized',
-          data: [unoptimized.initial[key], unoptimized.reload[key]],
+          data: [unoptimized?.initial?.[key] ?? 0, unoptimized?.reload?.[key] ?? 0],
           backgroundColor: 'rgba(255, 99, 132, 0.5)',
           borderColor: 'rgba(255, 99, 132, 1)',
           borderWidth: 1,
         },
         {
           label: 'Optimized',
-          data: [optimized.initial[key], optimized.reload[key]],
+          data: [optimized?.initial?.[key] ?? 0, optimized?.reload?.[key] ?? 0],
           backgroundColor: 'rgba(53, 162, 235, 0.5)',
           borderColor: 'rgba(53, 162, 235, 1)',
           borderWidth: 1,

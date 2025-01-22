@@ -15,7 +15,7 @@ function MetricsSection({ title }) {
     }
   };
 
-  const metrics = unoptimizedData && optimizedData
+  const metrics = unoptimizedData || optimizedData
     ? processMetricsData(unoptimizedData, optimizedData)
     : [];
 

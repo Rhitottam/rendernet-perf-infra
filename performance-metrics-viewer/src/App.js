@@ -1,3 +1,5 @@
+import ScriptExecutionSection from "./components/ScriptExecutionSection";
+import StatusSection from "./components/StatusSection";
 import React from 'react';
 import MetricsSection from './components/MetricsSection';
 
@@ -8,14 +10,16 @@ function App() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600">
-              Performance Metrics Comparison
+              App Performance Metrics Infra
             </span>
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            ⚡  ️❌👁️  ❓   ✅  ⚡️
+            View/Compare performance metrics and web vitals for different test runs.
           </p>
         </div>
         <div className="space-y-8">
+          <ScriptExecutionSection />
+          <StatusSection />
           <MetricsSection
             title="Studio Feed Load"
             type="studio"
