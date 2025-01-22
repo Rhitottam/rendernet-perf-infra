@@ -105,6 +105,9 @@ app.post('/run-performance-test', auth, (req, res) => {
       });
     });
 
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
     res.json({
       processId,
       status: 'started',
@@ -124,6 +127,8 @@ app.post('/run-performance-test', auth, (req, res) => {
 });
 
 app.get('/status', auth, (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.json({
     status: [...processes.keys()].map(processKey => {
       const processInfo = processes.get(processKey);
@@ -142,6 +147,8 @@ app.get('/status', auth, (req, res) => {
 app.get('/status/:processId', auth, (req, res) => {
   const { processId } = req.params;
   if(!processId) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.json({
      data: [...processes.keys()].map(processKey => {
        const processInfo = processes.get(processKey);
@@ -160,8 +167,11 @@ app.get('/status/:processId', auth, (req, res) => {
   if (!processInfo) {
     return res.status(404).json({ error: 'Process not found' });
   }
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
 
-  res.json({
+  res
+    .json({
     command: processInfo.command,
     status: processInfo.status,
     logs: processInfo.logs,
@@ -174,6 +184,8 @@ app.get('/test-readings', auth, async (req, res) => {
     const directory = path.join(__dirname, '../tests/utils/test-readings'); // Adjust path as needed
     console.log('Reading JSON files from:', directory);
     const jsonData = await readJsonFiles(directory);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.json(jsonData);
   } catch (error) {
     res.status(500).json({
