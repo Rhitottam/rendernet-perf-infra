@@ -15,7 +15,7 @@ function FileUploadSection({ label, onDataUpload }) {
       setLoading(true);
       setError('');
 
-      const response = await fetch('http://ec2-54-209-103-199.compute-1.amazonaws.com/test-readings',{
+      const response = await fetch('http://ec2-54-209-103-199.compute-1.amazonaws.com/api/test-readings',{
         headers: getBasicAuthHeaders(),
       });
       if (!response.ok) {
