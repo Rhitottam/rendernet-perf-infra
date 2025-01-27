@@ -101,7 +101,6 @@ const autoScroll =  async (p, maxScrolls) => {
     if(isEnd) {
       break;
     }
-    console.log('scrolling... ', i);
     i++;
     await p.waitForTimeout(2000);
   }
@@ -204,6 +203,51 @@ const clearLoadTimes = async (p) => {
   });
 };
 
+const calculateLoadTimeStatsFromMap = (loadTimeMap) => {
+  if (!loadTimeMap || loadTimeMap.size === 0) {
+    return {
+      average: 0,
+      median: 0,
+      p95: 0,
+      p99: 0,
+      min: 0,
+      max: 0,
+      count: 0
+    };
+  }
+  const times = [...loadTimeMap.values()];
+
+  // Sort times for percentile calculations
+  const sortedTimes = [...times].sort((a, b) => a - b);
+
+  // Calculate average
+  const average = times.reduce((sum, time) => sum + time, 0) / times.length;
+
+  // Calculate median (p50)
+  const medianIndex = Math.floor(sortedTimes.length / 2);
+  const median = sortedTimes.length % 2 === 0
+    ? (sortedTimes[medianIndex - 1] + sortedTimes[medianIndex]) / 2
+    : sortedTimes[medianIndex];
+
+  // Calculate percentiles
+  const getPercentile = (arr, p) => {
+    const index = Math.ceil((p / 100) * arr.length) - 1;
+    return arr[index];
+  };
+
+  const p95 = getPercentile(sortedTimes, 95);
+  const p99 = getPercentile(sortedTimes, 99);
+
+  return {
+    average: (average),
+    median: (median),
+    p95: Math.round(p95),
+    p99: Math.round(p99),
+    min: sortedTimes[0],
+    max: sortedTimes[sortedTimes.length - 1],
+    count: times.length
+  };
+};
 
 const calculateLoadTimeStats = (loadTimes) => {
   if (!loadTimes || loadTimes.length === 0) {
@@ -725,12 +769,18 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
   );
 }
 
+const isGeneratedMediaUrl = (url) => {
+  // Match webp, png, or mp4 extensions and optional user[-_]generated pattern
+  const mediaPattern = /.*(user[-_]generated|flux-images|thumbnail).*\.(webp|png|mp4)($|\?)/i;
+  return mediaPattern.test(url);
+};
+
 module.exports = {
   autoScroll,
   autoScrollAlt,
   getAllImageLoadTimes,
   clearLoadTimes,
-  calculateLoadTimeStats,
+  calculateLoadTimeStatsFromMap,
   getNavigationTimingData,
   increaseResourceTimingBufferSize,
   getResourceObservedData,
@@ -752,5 +802,6 @@ module.exports = {
   periodicCheckForCanvasImagesCompletionAlt,
   periodicCheckForCanvasImagesCompletionLoop,
   constructInitialReadingsJson,
-  createPerformanceTestReadingsJSON
+  createPerformanceTestReadingsJSON,
+  isGeneratedMediaUrl
 };

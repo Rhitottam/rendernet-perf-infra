@@ -23,6 +23,17 @@ const logsNamespace = io.of('/logs');
 
 app.use(express.json());
 
+// Serve static files from the build directory
+app.use(express.static(path.join(__dirname, '../performance-metrics-viewer/build')));
+
+// API routes with /api prefix
+app.use('/api', auth, async (req, res, next) => {
+  // Add common API headers
+  res.header('X-API-Version', '1.0.0');
+  next();
+});
+
+
 // Get available commands
 /*
 curl -X POST http://localhost:3000/run-performance-test \
@@ -31,7 +42,7 @@ curl -X POST http://localhost:3000/run-performance-test \
      -d '{"testName": "studio-feed-performance-tests.spec.js ", "baseUrl": "http://localhost:3000"}'
 */
 // Run command
-app.post('/run-performance-test', auth, (req, res) => {
+app.post('/api/run-performance-test', auth, (req, res) => {
   const { testName, baseUrl, browser='chromium' } = req.body;
 
   // Validate command
@@ -127,12 +138,14 @@ app.post('/run-performance-test', auth, (req, res) => {
   }
 });
 
-app.get('/status', auth, (req, res) => {
+app.get('/api/status', auth, (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.json({
-    status: [...processes.keys()].map(processKey => {
+    status: [...processes.keys()]
+      .filter(processKey => processes.get(processKey).status === 'running')
+      .map(processKey => {
       const processInfo = processes.get(processKey);
       return {
         processId: processKey,
@@ -146,7 +159,7 @@ app.get('/status', auth, (req, res) => {
 });
 
 // Get command execution status
-app.get('/status/:processId', auth, (req, res) => {
+app.get('/api/status/:processId', auth, (req, res) => {
   const { processId } = req.params;
   if(!processId) {
     res.header('Access-Control-Allow-Origin', '*')
@@ -183,7 +196,7 @@ app.get('/status/:processId', auth, (req, res) => {
   });
 });
 
-app.get('/test-readings', auth, async (req, res) => {
+app.get('/api/test-readings', auth, async (req, res) => {
   try {
     const directory = path.join(__dirname, '../tests/utils/test-readings'); // Adjust path as needed
     console.log('Reading JSON files from:', directory);
@@ -234,6 +247,10 @@ app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.sendStatus(204);
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../performance-metrics-viewer/build', 'index.html'));
 });
 
 // Cleanup old processes

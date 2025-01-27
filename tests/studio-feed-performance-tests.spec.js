@@ -16,9 +16,11 @@ const {
   autoScroll,
   getAllImageLoadTimes,
   clearLoadTimes,
-  calculateLoadTimeStats,
-  increaseResourceTimingBufferSize, createPerformanceTestReadingsJSON, constructInitialReadingsJson,
-
+  calculateLoadTimeStatsFromMap,
+  increaseResourceTimingBufferSize,
+  createPerformanceTestReadingsJSON,
+  constructInitialReadingsJson,
+  isGeneratedMediaUrl
 } = require("./utils/utils");
 
 const navigateToStudioFeed = async (p) => {
@@ -39,7 +41,7 @@ const navigateToStudioFeed = async (p) => {
 
 
 
-const getStudioFeedLoadAndScrollReadings = async (p, navigationType, maxScrolls = 200) => {
+const getStudioFeedLoadAndScrollReadings = async (p, navigationType, imageLoadTimeMap, maxScrolls = 200) => {
   const readings = {};
 
   if(navigationType === NavigationTypes.INITIAL) {
@@ -78,9 +80,8 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, maxScrolls 
   readings.maxScrollFPS = fpsCounterDataScroll.maxFps;
   await clearFPSCounter(p);
   await p.waitForTimeout(3000);
-  const imageLoadTimes = await getAllImageLoadTimes(p);
-  readings.imageLoadTimeStats = calculateLoadTimeStats(imageLoadTimes);
-  await clearLoadTimes(p);
+  readings.imageLoadTimeStats = calculateLoadTimeStatsFromMap(imageLoadTimeMap);
+  imageLoadTimeMap.clear();
   await p.waitForTimeout(3000);
   return readings;
 }
@@ -100,27 +101,56 @@ beforeEach(async ({ page: p }) => {
   await p.waitForURL(process.env.BASE_URL);
   await p.waitForTimeout(500);
 })
-
+const map = new Map();
 test('Load and scroll studio feed media: Initial Load and Reload', async ({ page: p, browserName, isMobile }, testInfo) => {
   test.slow();
   console.log(`Running on: ${isMobile ? 'Mobile': 'Desktop'}, Browser: ${browserName === 'webkit' ? 'safari': browserName}`);
   const maxNumberOfScrolls = 1000;
-  const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
-  readingsJSON[NavigationTypes.INITIAL] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.INITIAL, maxNumberOfScrolls);
-  const serviceWorkerUnregisterStatus = await p.evaluate(async () => {
-    return await navigator.serviceWorker.getRegistration().then(function(registration) {
-      return registration.unregister();
-    });
+  p.on('requestfinished', request => {
+    if(request.resourceType() === 'image' && isGeneratedMediaUrl(request.url())) {
+      map.set(request.url(), request.timing().responseEnd);
+    }
   });
-  console.log('ServiceWorker Unregister Status', serviceWorkerUnregisterStatus);
+  // p.on('response', response => {
+  //   const startDate = map.get(response.url());
+  //   if((startDate)) {
+  //     map.set(response.url(), req);
+  //     // console.log(response.url(), Date.now() - startDate);
+  //   }
+  // });
+  const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
+  readingsJSON[NavigationTypes.INITIAL] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.INITIAL, map, maxNumberOfScrolls);
+  // const serviceWorkerUnregisterStatus = await p.evaluate(async () => {
+  //   return await navigator.serviceWorker.getRegistration().then(function(registration) {
+  //     return registration.unregister();
+  //   });
+  // });
+  // console.log('Request timing map',
+  //   ([...map.values()].reduce((a, b) => a + b, 0))/map.size,
+  //   ([...map.values()].reduce((a, b) => Math.max(a, b), 0)),
+  //   ([...map.values()].reduce((a, b) => Math.min(a, b), Number.MAX_SAFE_INTEGER)),
+  //   map.size,
+  // );
+  map.clear();
+  console.log('Request timing map', [...map.values()], map.size);
+
+  // console.log('ServiceWorker Unregister Status', serviceWorkerUnregisterStatus);
   await p.reload();
-  readingsJSON[NavigationTypes.RELOAD] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.RELOAD, maxNumberOfScrolls);
+  readingsJSON[NavigationTypes.RELOAD] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.RELOAD, map, maxNumberOfScrolls);
   console.log(readingsJSON);
   test.info().annotations.push({
     type: `Studio Feed Load Tests - ${readingsJSON.label}`,
     description: 'Load and scroll studio feed media: Initial Load and Reload',
     performanceTestReadings: readingsJSON
   });
+  console.log([...map.values()], map.size, 'After reload >>>');
+  // console.log('Request timing map',
+  //   ([...map.values()].reduce((a, b) => a + b, 0))/map.size,
+  //   ([...map.values()].reduce((a, b) => Math.max(a, b), 0)),
+  //   ([...map.values()].reduce((a, b) => Math.min(a, b), Number.MAX_SAFE_INTEGER)),
+  //   map.size,
+  // );
+  // map.clear();
   createPerformanceTestReadingsJSON(`studio-feed-performance`, readingsJSON);
   await testInfo.attach(`studio-feed-performance-test readings-${readingsJSON.label}`, { body: JSON.stringify(readingsJSON), contentType: 'application/json' });
 });
