@@ -34,14 +34,28 @@ app.use('/api', auth, async (req, res, next) => {
 });
 
 
-// Get available commands
+// Get available tests
+app.get('/api/tests', auth, async (req, res) => {
+  try {
+    const testFileNames = await getFileNames();
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.json(testFileNames);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to read JSON files',
+      details: error.message
+    });
+  }
+});
 /*
 curl -X POST http://localhost:3000/run-performance-test \
      -u admin:password123 \
      -H "Content-Type: application/json" \
      -d '{"testName": "studio-feed-performance-tests.spec.js ", "baseUrl": "http://localhost:3000"}'
 */
-// Run command
+// Run Performance Test
 app.post('/api/run-performance-test', auth, (req, res) => {
   const { testName, baseUrl, browser='chromium' } = req.body;
 

@@ -1,5 +1,5 @@
 import {getBasicAuthHeaders} from "../utils/auth";
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
 const BROWSER_OPTIONS = [
   { value: 'chromium', label: 'Chromium' },
@@ -8,14 +8,14 @@ const BROWSER_OPTIONS = [
   { value: 'mobile-safari', label: 'Mobile Safari' }
 ];
 
-const TEST_NAMES = [
-  {
-    value: 'studio-feed-performance-tests', label: 'Studio Feed Performance Tests',
-  },
-  {
-    value: 'canvas-feed-performance-tests', label: 'Canvas Feed Performance Tests',
-  }
-];
+// const TEST_NAMES = [
+//   {
+//     value: 'studio-feed-performance-tests', label: 'Studio Feed Performance Tests',
+//   },
+//   {
+//     value: 'canvas-feed-performance-tests', label: 'Canvas Feed Performance Tests',
+//   }
+// ];
 
 // You can move this to a configuration file or fetch from API
 const APP_URLS = [
@@ -33,6 +33,30 @@ function ScriptExecutionSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [copyStatus, setCopyStatus] = useState({});
+  const [testNameList, setTestNameList] = useState([]);
+
+  useEffect(() => {
+    const fetchTestNames = async () => {
+      try {
+        const response = await fetch('/api/tests', {
+          headers: {
+            ...getBasicAuthHeaders(),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch test names');
+        }
+
+        const data = await response.json();
+        setTestNameList(data);
+      } catch (err) {
+        console.error('Failed to fetch test names:', err);
+      }
+    };
+
+    fetchTestNames();
+  }, []);
 
   const handleCopy = async (url) => {
     try {
@@ -57,7 +81,7 @@ function ScriptExecutionSection() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://ec2-54-209-103-199.compute-1.amazonaws.com/api/run-performance-test', {
+      const response = await fetch('/api/run-performance-test', {
         method: 'POST',
         headers: {
           ...getBasicAuthHeaders(),
@@ -145,9 +169,10 @@ function ScriptExecutionSection() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md
                        focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             >
-              {TEST_NAMES.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              <option value="">Select a test reading</option>
+              {testNameList.map(option => (
+                <option key={option} value={option}>
+                  {option}
                 </option>
               ))}
             </select>
@@ -187,13 +212,13 @@ function ScriptExecutionSection() {
 
         <button
           onClick={handleExecute}
-          disabled={!appUrl || !testName || loading}
+          disabled={!appUrl || !testName?.length || loading}
           className="px-4 py-2 text-sm font-medium text-white bg-primary-600
                    rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2
                    focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50
                    disabled:cursor-not-allowed"
         >
-          {loading ? 'Executing...' : 'Execute Script'}
+          {loading ? 'Running...' : 'Run performance Test'}
         </button>
 
         {error && (

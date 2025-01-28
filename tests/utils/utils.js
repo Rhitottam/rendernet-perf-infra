@@ -1,6 +1,22 @@
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+
+const loginUser = async (p) => {
+  await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
+    timeout: 120000,
+  });
+  await increaseResourceTimingBufferSize(p);
+  await p.waitForSelector('#email');
+  await p.focus('#email');
+  await p.keyboard.type(process.env.EMAIL);
+  await p.focus('#password');
+  await p.keyboard.type(process.env.PASSWORD);
+  await p.click('#login-button');
+  await p.waitForURL(process.env.BASE_URL);
+  await p.waitForTimeout(500);
+}
+
 const autoScrollEval = async (p, maxScrolls) => {
   await p.evaluate(async (maxScrolls) => {
     await new Promise(async (resolve) => {
@@ -792,6 +808,7 @@ module.exports = {
   runFPSCounter,
   clearFPSCounter,
   getFPSCounterData,
+  loginUser,
   NavigationTypes,
   performZoomIn,
   performZoomOut,

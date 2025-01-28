@@ -1,6 +1,4 @@
-// @ts-check
-const { test, beforeEach, beforeAll } = require('@playwright/test');
-require('dotenv').config();
+const { describe, it,  test, beforeEach, beforeAll } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const {
@@ -20,8 +18,18 @@ const {
   increaseResourceTimingBufferSize,
   createPerformanceTestReadingsJSON,
   constructInitialReadingsJson,
-  isGeneratedMediaUrl
+  isGeneratedMediaUrl,
+  loginUser
 } = require("./utils/utils");
+const playwright =  require('playwright');
+require('dotenv').config();
+// let lighthouse;
+// (async () => {
+//   lighthouse =  await import("lighthouse");
+//   console.log('light house imported', lighthouse);
+// })()
+
+// const lighthouse = require("lighthouse");
 
 const navigateToStudioFeed = async (p) => {
   await p.waitForSelector('#navbar-container');
@@ -87,20 +95,9 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, imageLoadTi
 }
 
 
-beforeEach(async ({ page: p }) => {
-  await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
-    timeout: 120000,
-  });
-  await increaseResourceTimingBufferSize(p);
-  await p.waitForSelector('#email');
-  await p.focus('#email');
-  await p.keyboard.type(process.env.EMAIL);
-  await p.focus('#password');
-  await p.keyboard.type(process.env.PASSWORD);
-  await p.click('#login-button');
-  await p.waitForURL(process.env.BASE_URL);
-  await p.waitForTimeout(500);
-})
+// beforeEach(async ({ page: p }) => {
+//   await loginUser(p)
+// })
 const map = new Map();
 test('Load and scroll studio feed media: Initial Load and Reload', async ({ page: p, browserName, isMobile }, testInfo) => {
   test.slow();
@@ -111,30 +108,9 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
       map.set(request.url(), request.timing().responseEnd);
     }
   });
-  // p.on('response', response => {
-  //   const startDate = map.get(response.url());
-  //   if((startDate)) {
-  //     map.set(response.url(), req);
-  //     // console.log(response.url(), Date.now() - startDate);
-  //   }
-  // });
   const readingsJSON = constructInitialReadingsJson(isMobile, browserName);
   readingsJSON[NavigationTypes.INITIAL] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.INITIAL, map, maxNumberOfScrolls);
-  // const serviceWorkerUnregisterStatus = await p.evaluate(async () => {
-  //   return await navigator.serviceWorker.getRegistration().then(function(registration) {
-  //     return registration.unregister();
-  //   });
-  // });
-  // console.log('Request timing map',
-  //   ([...map.values()].reduce((a, b) => a + b, 0))/map.size,
-  //   ([...map.values()].reduce((a, b) => Math.max(a, b), 0)),
-  //   ([...map.values()].reduce((a, b) => Math.min(a, b), Number.MAX_SAFE_INTEGER)),
-  //   map.size,
-  // );
   map.clear();
-  console.log('Request timing map', [...map.values()], map.size);
-
-  // console.log('ServiceWorker Unregister Status', serviceWorkerUnregisterStatus);
   await p.reload();
   readingsJSON[NavigationTypes.RELOAD] = await getStudioFeedLoadAndScrollReadings(p, NavigationTypes.RELOAD, map, maxNumberOfScrolls);
   console.log(readingsJSON);
@@ -143,14 +119,7 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
     description: 'Load and scroll studio feed media: Initial Load and Reload',
     performanceTestReadings: readingsJSON
   });
-  console.log([...map.values()], map.size, 'After reload >>>');
-  // console.log('Request timing map',
-  //   ([...map.values()].reduce((a, b) => a + b, 0))/map.size,
-  //   ([...map.values()].reduce((a, b) => Math.max(a, b), 0)),
-  //   ([...map.values()].reduce((a, b) => Math.min(a, b), Number.MAX_SAFE_INTEGER)),
-  //   map.size,
-  // );
-  // map.clear();
   createPerformanceTestReadingsJSON(`studio-feed-performance`, readingsJSON);
   await testInfo.attach(`studio-feed-performance-test readings-${readingsJSON.label}`, { body: JSON.stringify(readingsJSON), contentType: 'application/json' });
 });
+
