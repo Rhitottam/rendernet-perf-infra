@@ -11,7 +11,7 @@ function StatusSection() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://ec2-54-209-103-199.compute-1.amazonaws.com/api/status',{
+      const response = await fetch('/api/status',{
         headers: getBasicAuthHeaders(),
       });
       if (!response.ok) {
