@@ -19,9 +19,10 @@ const BROWSER_OPTIONS = [
 
 // You can move this to a configuration file or fetch from API
 const APP_URLS = [
+  { name: 'Staging App', url: 'https://rendernet-stg.web.app/' },
   { name: 'Base App Unoptimized', url: 'https://rendernet-stg--pr1552-testing-studio-loadi-qmk6y8jg.web.app/' },
-  { name: 'App with Studio Optimized', url: 'https://rendernet-stg--pr1607-testing-studio-loadi-4qy3lijb.web.app/' },
-  { name: 'App with Canvas Optimized', url: 'https://rendernet-stg--pr1606-testing-canvas-loadi-attts81l.web.app/' },
+  { name: 'App with Canvas Optimized with viewport Image loading', url: 'https://rendernet-stg--pr1640-testing-canvas-image-qiv44gw0.web.app/' },
+  { name: 'App with Canvas Optimized with Low res images', url: 'https://rendernet-stg--pr1606-testing-canvas-loadi-attts81l.web.app/' },
   // Add more URLs as needed
 ];
 
