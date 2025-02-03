@@ -95,9 +95,9 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, imageLoadTi
 }
 
 
-// beforeEach(async ({ page: p }) => {
-//   await loginUser(p)
-// })
+beforeEach(async ({ page: p }) => {
+  await loginUser(p)
+});
 const map = new Map();
 test('Load and scroll studio feed media: Initial Load and Reload', async ({ page: p, browserName, isMobile }, testInfo) => {
   test.slow();

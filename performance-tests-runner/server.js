@@ -213,7 +213,6 @@ app.get('/api/status/:processId', auth, (req, res) => {
 app.get('/api/test-readings', auth, async (req, res) => {
   try {
     const directory = path.join(__dirname, '../tests/utils/test-readings'); // Adjust path as needed
-    console.log('Reading JSON files from:', directory);
     const jsonData = await readJsonFiles(directory);
     res.header('Access-Control-Allow-Origin', '*')
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

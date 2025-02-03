@@ -6,7 +6,13 @@ const loginUser = async (p) => {
   await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
     timeout: 120000,
   });
-  await increaseResourceTimingBufferSize(p);
+  if(Number(process.env.FEED_SIZE ?? 0)) {
+    await p.evaluate(() => {
+      localStorage.setItem('feedSize', process.env.FEED_SIZE);
+    });
+    await p.reload();
+  }
+  // await increaseResourceTimingBufferSize(p);
   await p.waitForSelector('#email');
   await p.focus('#email');
   await p.keyboard.type(process.env.EMAIL);
@@ -90,7 +96,7 @@ const autoScrollOnce = async (p) => {
         let totalHeight = 0;
         let scrolls = 0;  // scrolls counter
         let scrollHeight, scrollTop;
-        const studioFeed = document.getElementById('studio_feed_wrapper');
+        const studioFeed = document.querySelector('#studio_feed_wrapper > div:nth-child(2)');
 
         if (studioFeed != null) {
           scrollTop = studioFeed.scrollTop;
@@ -112,8 +118,10 @@ const autoScrollOnce = async (p) => {
 
 const autoScroll =  async (p, maxScrolls) => {
   let i = 0;
+  console.log('scroll start');
   while(i<maxScrolls) {
     const isEnd = await autoScrollOnce(p);
+    console.log('isEnd', isEnd);
     if(isEnd) {
       break;
     }
@@ -661,11 +669,19 @@ const checkForCanvasImagesCompletion = async (p) => {
         const images = imageShape.getElementsByTagName('img');
         return Array.from(images ?? []).every((image) => image?.src?.length);
       });
-      if (canvasImageShapes?.length <= completedCanvasImageShapes?.length + 20) {
-        cb({isComplete: true, ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`});
+      if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
+        cb({
+          isComplete: true,
+          ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`,
+          total: canvasImageShapes.length
+        });
       }
       else {
-        cb({isComplete: false, ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`});
+        cb({
+          isComplete: false,
+          ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`,
+          total: canvasImageShapes.length
+        });
       }
     });
   });
@@ -775,7 +791,23 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
   }
 
   // Write JSON file
-  const fileName = `test-data-${label}-${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}-${(new Date().toUTCString().replaceAll(/\s+/g, '-'))}.json`;
+  const date = new Date();
+  const dateString = date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).replaceAll('/', '-');
+  const timeString = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h24',
+    timeZoneName: 'shortGeneric',
+  }).replaceAll(/[\/:\s]/g, '-');
+
+  const fileName = `test-data|${label}|${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}|${dateString}|${timeString}|.json`;
+
+  console.log(fileName.split('|'));
   const filePath = path.join(resultsDir, fileName);
 
   fs.writeFileSync(
