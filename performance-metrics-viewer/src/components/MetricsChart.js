@@ -1,14 +1,14 @@
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Title,
+  Tooltip
+} from 'chart.js';
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
@@ -22,13 +22,28 @@ ChartJS.register(
 function MetricsChart({ title, description, data }) {
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
+        labels: {
+          boxWidth: 12,
+          padding: 8,
+          font: {
+            size: 11
+          }
+        }
       },
       title: {
         display: true,
         text: [title, description],
+        font: {
+          size: 13,
+          weight: 'normal'
+        },
+        padding: {
+          bottom: 10
+        }
       },
       tooltip: {
         callbacks: {
@@ -44,6 +59,11 @@ function MetricsChart({ title, description, data }) {
       x: {
         grid: {
           display: false
+        },
+        ticks: {
+          font: {
+            size: 11
+          }
         }
       },
       y: {
@@ -51,6 +71,9 @@ function MetricsChart({ title, description, data }) {
         ticks: {
           callback: function(value) {
             return (value / 1000).toFixed(3) + 's';
+          },
+          font: {
+            size: 11
           }
         }
       }
@@ -60,28 +83,31 @@ function MetricsChart({ title, description, data }) {
   };
 
   // Convert milliseconds to seconds with 3 decimal places
-  const formatValue = (value) => description?.includes('FPS') ? value : (value / 1000).toFixed(3) + 's';
+  const formatValue = (value) => (description?.includes('FPS') || description?.includes('Frames'))
+    ? Number(value).toFixed(2) : (value / 1000).toFixed(3) + 's';
 
   return (
-    <div className="chart-container">
-      <Bar options={options} data={data} />
-      <div className="values-table">
-        <table>
+    <div className="flex flex-col h-[400px]">
+      <div className="flex-1 min-h-0">
+        <Bar options={options} data={data} />
+      </div>
+      <div className="mt-4">
+        <table className="w-full text-sm">
           <thead>
-          <tr>
-            <th>Type</th>
-            <th>Initial</th>
-            <th>Reload</th>
-          </tr>
+            <tr className="text-gray-600">
+              <th className="text-left py-1">Type</th>
+              <th className="text-right py-1">Initial</th>
+              <th className="text-right py-1">Reload</th>
+            </tr>
           </thead>
           <tbody>
-          {data.datasets.map((dataset, index) => (
-            <tr key={index}>
-              <td>{dataset.label}</td>
-              <td>{formatValue(dataset.data[0])}</td>
-              <td>{formatValue(dataset.data[1])}</td>
-            </tr>
-          ))}
+            {data.datasets.map((dataset, index) => (
+              <tr key={index} className="border-t border-gray-100">
+                <td className="py-1 text-left max-w-40">{dataset.label}</td>
+                <td className="py-1 text-right font-mono">{formatValue(dataset.data[0])}</td>
+                <td className="py-1 text-right font-mono">{formatValue(dataset.data[1])}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

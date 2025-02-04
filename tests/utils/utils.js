@@ -121,7 +121,6 @@ const autoScroll =  async (p, maxScrolls) => {
   console.log('scroll start');
   while(i<maxScrolls) {
     const isEnd = await autoScrollOnce(p);
-    console.log('isEnd', isEnd);
     if(isEnd) {
       break;
     }
@@ -802,12 +801,9 @@ const createPerformanceTestReadingsJSON = (label, readings) => {
     minute: '2-digit',
     second: '2-digit',
     hourCycle: 'h24',
-    timeZoneName: 'shortGeneric',
   }).replaceAll(/[\/:\s]/g, '-');
 
-  const fileName = `test-data|${label}|${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}|${dateString}|${timeString}|.json`;
-
-  console.log(fileName.split('|'));
+  const fileName = `test-data|${label}|${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}|${dateString}|${timeString}|${process.env.FEED_SIZE ?? 500}|.json`;
   const filePath = path.join(resultsDir, fileName);
 
   fs.writeFileSync(

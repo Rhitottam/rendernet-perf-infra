@@ -1,5 +1,5 @@
-import {getBasicAuthHeaders} from "../utils/auth";
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
+import { getBasicAuthHeaders } from "../utils/auth";
 
 const BROWSER_OPTIONS = [
   { value: 'chromium', label: 'Chromium' },
@@ -223,16 +223,75 @@ function ScriptExecutionSection() {
         </button>
 
         {error && (
-          <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md">
-            {error}
+          <div className="p-3 text-sm text-red-700 bg-red-50 rounded-md flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span>Failed to start test: {error}</span>
           </div>
         )}
 
         {result && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-md">
-            <pre className="text-sm font-mono overflow-auto">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+          <div className="mt-4">
+            {result.status === 'started' ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span className="text-green-700 font-medium">Test started successfully!</span>
+                  </div>
+                  <button
+                    onClick={() => setResult(prev => ({ ...prev, showDetails: !prev.showDetails }))}
+                    className="text-green-600 hover:text-green-700"
+                  >
+                    {result.showDetails ? '▼' : '▶'}
+                  </button>
+                </div>
+
+                {result.showDetails && (
+                  <div className="border-t border-green-200 px-4 py-3 bg-green-50">
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Test Details:</h4>
+                        <div className="space-y-1 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Test File:</span> {result.test}
+                          </div>
+                          <div>
+                            <span className="font-medium">Browser:</span> {result.browser}
+                          </div>
+                          <div>
+                            <span className="font-medium">Base URL:</span> {result.baseUrl}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-gray-700">Command:</h4>
+                        <pre className="text-xs bg-white p-2 rounded border border-green-100 overflow-x-auto">
+                          {result.command.command} {result.command.args.join(' ')}
+                        </pre>
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        Process ID: {result.processId}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+                <div className="px-4 py-3 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                  <span className="text-red-700 font-medium">Failed to start test</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

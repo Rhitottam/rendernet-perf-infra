@@ -57,7 +57,7 @@ curl -X POST http://localhost:3000/run-performance-test \
 */
 // Run Performance Test
 app.post('/api/run-performance-test', auth, (req, res) => {
-  const { testName, baseUrl, browser='chromium' } = req.body;
+  const { testName, baseUrl, browser='chromium', feedSize=500 } = req.body;
 
   // Validate command
   if (!testName || !ALLOWED_TEST_FILENAMES.has(testName)) {
@@ -75,6 +75,7 @@ app.post('/api/run-performance-test', auth, (req, res) => {
     command: 'env',
     args: [
       ...(baseUrl ? [`BASE_URL=${baseUrl}`] : []),
+      ...(feedSize ? [`FEED_SIZE=${feedSize}`] : []),
       ...['npx', 'playwright', 'test', testPath, `--project=${browser}`]
     ],
     options: {

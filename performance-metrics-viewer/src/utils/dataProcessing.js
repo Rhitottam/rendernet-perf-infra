@@ -49,7 +49,7 @@ function createMetricsConfig(unoptimized, optimized) {
   // Get all unique metric keys
   const metricKeys = new Set([
     ...(Object.keys(unoptimized.initial).length > 0 ? Object.keys(unoptimized.initial) : Object.keys(optimized.initial)),
-    ...(Object.keys(unoptimized.reload).length > 0  ? Object.keys(unoptimized.initial) : Object.keys(optimized.initial))
+    ...(Object.keys(unoptimized.reload).length > 0  ? Object.keys(unoptimized.reload) : Object.keys(optimized.reload))
   ]);
 
   metricKeys.forEach(key => {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import MetricsSection from './components/MetricsSection';
 import ScriptExecutionSection from "./components/ScriptExecutionSection";
 import StatusSection from "./components/StatusSection";
 import ReportPage from './pages/ReportPage';
@@ -11,14 +10,6 @@ function HomePage() {
     <div className="space-y-8">
       <ScriptExecutionSection />
       <StatusSection />
-      <MetricsSection
-        title="Studio Feed Load"
-        type="studio"
-      />
-      <MetricsSection
-        title="Canvas Feed Load"
-        type="canvas"
-      />
     </div>
   );
 }
@@ -37,8 +28,8 @@ function App() {
             <p className="text-lg text-gray-700 max-w-2xl mx-auto">
               View/Compare performance metrics and web vitals for different test runs.
             </p>
-            <nav className="mt-4">
-              <ul className="flex justify-center space-x-6">
+            <nav className="mt-4 font-bold">
+              <ul className="flex justify-center space-x-6 text-gray-300 bg-white rounded-2xl p-3">
                 <li>
                   <Link to="/" className="text-gray-600 hover:text-primary-600">
                     Home
@@ -52,9 +43,9 @@ function App() {
               </ul>
             </nav>
           </div>
-          
+
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<HomePage/>}/>
             <Route path="/report/:date" element={<ReportPage />} />
             <Route path="/reports" element={<ListReportsPage />} />
           </Routes>

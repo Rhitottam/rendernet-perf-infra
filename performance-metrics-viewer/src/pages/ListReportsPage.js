@@ -69,7 +69,7 @@ function ListReportsPage() {
       </h2>
       
       {Object.entries(testData).sort((a, b) => b[0].localeCompare(a[0])).map(([date, tests]) => (
-        <div key={date} className="bg-white rounded-lg shadow-sm p-4">
+        <div key={date} className="bg-opacity-65 bg-blue-300 rounded-lg shadow-sm p-4">
           <div className="flex items-center mb-2">
             <button
               onClick={() => toggleExpand(date)}
@@ -121,17 +121,6 @@ function ListReportsPage() {
                                 className="px-3 py-1.5 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 transition-colors"
                               >
                                 View Report
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const compareKeys = runs
-                                    .filter(r => r.key !== run.key)
-                                    .map(r => r.key);
-                                  navigateToReport(date, run.key, compareKeys);
-                                }}
-                                className="px-3 py-1.5 bg-secondary-600 text-white text-sm rounded-md hover:bg-secondary-700 transition-colors"
-                              >
-                                Compare All
                               </button>
                             </div>
                           </div>
