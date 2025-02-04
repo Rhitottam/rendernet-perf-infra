@@ -1,4 +1,4 @@
-import {getBasicAuthHeaders} from "performance-metrics-viewer/src/utils/auth";
+import {getBasicAuthHeaders} from "../utils/auth";
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import MetricsChart from '../components/MetricsChart';
