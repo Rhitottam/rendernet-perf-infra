@@ -1,3 +1,4 @@
+import {getBasicAuthHeaders} from "performance-metrics-viewer/src/utils/auth";
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import MetricsChart from '../components/MetricsChart';
@@ -33,7 +34,9 @@ function ReportPage() {
       const mainTestKey = searchParams.get('mainTest');
       const compareWithKeys = searchParams.get('compareWith')?.split(',') || [];
       
-      const response = await fetch('/api/test-readings');
+      const response = await fetch('/api/test-readings', {
+        headers: getBasicAuthHeaders(),
+      });
       const data = await response.json();
       
       const mainTest = data[mainTestKey];

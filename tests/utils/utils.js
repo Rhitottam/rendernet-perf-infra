@@ -7,9 +7,10 @@ const loginUser = async (p) => {
     timeout: 120000,
   });
   if(Number(process.env.FEED_SIZE ?? 0)) {
-    await p.evaluate(() => {
-      localStorage.setItem('feedSize', process.env.FEED_SIZE);
-    });
+   await p.evaluate((feedSize) => {
+      localStorage.setItem('feedSize', feedSize);
+      return feedSize
+    }, process.env.FEED_SIZE);
     await p.reload();
   }
   // await increaseResourceTimingBufferSize(p);

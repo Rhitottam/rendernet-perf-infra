@@ -1,3 +1,4 @@
+import {getBasicAuthHeaders} from "performance-metrics-viewer/src/utils/auth";
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,7 +13,11 @@ function ListReportsPage() {
 
   const fetchTestReadings = async () => {
     try {
-      const response = await fetch('/api/test-readings');
+      const response = await fetch('/api/test-readings', {
+        headers: {
+          ...getBasicAuthHeaders(),
+        }
+      });
       const data = await response.json();
       const organizedData = organizeTestData(data);
       setTestData(organizedData);

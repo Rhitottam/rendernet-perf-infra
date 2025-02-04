@@ -8,14 +8,13 @@ const BROWSER_OPTIONS = [
   { value: 'mobile-safari', label: 'Mobile Safari' }
 ];
 
-// const TEST_NAMES = [
-//   {
-//     value: 'studio-feed-performance-tests', label: 'Studio Feed Performance Tests',
-//   },
-//   {
-//     value: 'canvas-feed-performance-tests', label: 'Canvas Feed Performance Tests',
-//   }
-// ];
+const DATA_SIZE_OPTIONS = [
+  { value: '50', label: '50' },
+  { value: '100', label: '100' },
+  { value: '500', label: '500' },
+  { value: '1000', label: '1000' },
+  { value: '1500', label: '1500' }
+];
 
 // You can move this to a configuration file or fetch from API
 const APP_URLS = [
@@ -30,6 +29,7 @@ function ScriptExecutionSection() {
   const [appUrl, setAppUrl] = useState('');
   const [testName, setTestName] = useState(null);
   const [browser, setBrowser] = useState('chromium');
+  const [dataSize, setDataSize] = useState('500');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -87,7 +87,12 @@ function ScriptExecutionSection() {
         headers: {
           ...getBasicAuthHeaders(),
         },
-        body: JSON.stringify({ baseUrl: appUrl, browser, testName }),
+        body: JSON.stringify({ 
+          baseUrl: appUrl, 
+          browser, 
+          testName,
+          feedSize: parseInt(dataSize, 10)
+        }),
       });
 
       if (!response.ok) {
@@ -159,7 +164,7 @@ function ScriptExecutionSection() {
       </div>
 
       <div className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Test Name
@@ -208,7 +213,23 @@ function ScriptExecutionSection() {
               ))}
             </select>
           </div>
-
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Data Size
+            </label>
+            <select
+              value={dataSize}
+              onChange={(e) => setDataSize(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md
+                       focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            >
+              {DATA_SIZE_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
