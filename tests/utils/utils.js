@@ -689,18 +689,27 @@ const checkForCanvasImagesCompletion = async (p) => {
 
 const periodicCheckForCanvasImagesCompletionLoop = async (p) => {
   const startTime = performance.now();
+  let currentRatio = 1;
+  let currentTotal = 0;
   while(true) {
     const data = await checkForCanvasImagesCompletion(p);
-    const {isComplete} = data ?? {};
+    const {isComplete, ratio, total} = data ?? {};
     if(isComplete) {
       break;
     }
     else {
       await p.waitForTimeout(2000);
     }
+    if(performance.now() - startTime > 600000) {
+      currentRatio = ratio;
+      break;
+    }
   }
   const endTime = performance.now();
-  return endTime - startTime;
+  return {
+    time: endTime - startTime,
+    percentage: currentRatio * 100,
+  };
 }
 
 const periodicCheckForCanvasImagesCompletion = async (p) => {

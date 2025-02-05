@@ -37,7 +37,9 @@ const getCanvasFeedAndPerformOperations = async (p, navigationType, operationsRe
   readings.minLoadFPS = fpsCounterData.minFps;
   readings.maxLoadFPS = fpsCounterData.maxFps;
   await clearFPSCounter(p);
-  readings.canvasImageLoadTime = await periodicCheckForCanvasImagesCompletionLoop(p);
+  const { time, percentage }= await periodicCheckForCanvasImagesCompletionLoop(p);
+  readings.canvasImageLoadTime = time;
+  readings.canvasImageLoadPercentage = percentage;
   const e = await p.$('.tl-canvas');
   const box = await e.boundingBox();
   const point = [box.x + box.width / 2, box.y + box.height / 2];
