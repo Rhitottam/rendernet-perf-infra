@@ -672,14 +672,14 @@ const checkForCanvasImagesCompletion = async (p) => {
       if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
         cb({
           isComplete: true,
-          ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`,
+          ratio: completedCanvasImageShapes.length/canvasImageShapes.length,
           total: canvasImageShapes.length
         });
       }
       else {
         cb({
           isComplete: false,
-          ratio: `${completedCanvasImageShapes.length}/${canvasImageShapes.length}`,
+          ratio: completedCanvasImageShapes.length/canvasImageShapes.length,
           total: canvasImageShapes.length
         });
       }
@@ -690,10 +690,9 @@ const checkForCanvasImagesCompletion = async (p) => {
 const periodicCheckForCanvasImagesCompletionLoop = async (p) => {
   const startTime = performance.now();
   let currentRatio = 1;
-  let currentTotal = 0;
   while(true) {
     const data = await checkForCanvasImagesCompletion(p);
-    const {isComplete, ratio, total} = data ?? {};
+    const {isComplete, ratio} = data ?? {};
     if(isComplete) {
       break;
     }
@@ -708,7 +707,7 @@ const periodicCheckForCanvasImagesCompletionLoop = async (p) => {
   const endTime = performance.now();
   return {
     time: endTime - startTime,
-    percentage: currentRatio * 100,
+    percentage: Number(currentRatio * 100).toFixed(2),
   };
 }
 
