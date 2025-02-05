@@ -159,7 +159,6 @@ app.get('/api/status', auth, (req, res) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.json({
     status: [...processes.keys()]
-      .filter(processKey => processes.get(processKey).status === 'running')
       .map(processKey => {
       const processInfo = processes.get(processKey);
       return {
