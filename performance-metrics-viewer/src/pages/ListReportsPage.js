@@ -30,7 +30,7 @@ function ListReportsPage() {
     const organized = {};
     
     Object.keys(data).forEach(key => {
-      const [prefix, testName, testUrl, testDate, testTime] = key.split('|');
+      const [prefix, testName, testUrl, testDate, testTime, dataSize = '500'] = key.split('|');
       if (prefix === 'test-data') {
         if (!organized[testDate]) {
           organized[testDate] = {};
@@ -40,9 +40,10 @@ function ListReportsPage() {
         }
         organized[testDate][testName].push({
           url: testUrl,
-          time: testTime,
+          time: testTime?.replaceAll('-', ':'),
           title: `${testName} - ${new Date(testDate + ' ' + testTime).toLocaleTimeString()}`,
           data: data[key],
+          dataSize: dataSize?.length > 0 ? dataSize : 500,
           key
         });
       }
@@ -116,6 +117,7 @@ function ListReportsPage() {
                             <div className="flex-1">
                               <div className="font-mono text-gray-600 text-sm">URL: {run.url}</div>
                               <div className="text-gray-500 text-sm">Time: {run.time}</div>
+                              <div className="text-gray-500 text-sm">Data Size: {run.time}</div>
                               <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
                                 {JSON.stringify(run.data, null, 2)}
                               </pre>
