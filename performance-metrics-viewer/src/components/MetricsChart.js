@@ -84,7 +84,8 @@ function MetricsChart({ title, description, data }) {
 
   // Convert milliseconds to seconds with 3 decimal places
   const formatValue = (value) => (description?.includes('FPS') || description?.includes('Frames'))
-    ? Number(value).toFixed(2) : (value / 1000).toFixed(3) + 's';
+    ? Number(value).toFixed(2) : (String(description ?? '').toLowerCase().includes('percentage'))
+      ? `${Number(value).toFixed(2)}%` : (value / 1000).toFixed(3) + 's';
 
   return (
     <div className="flex flex-col h-[400px]">
