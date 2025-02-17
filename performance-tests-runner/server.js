@@ -6,8 +6,9 @@ const { spawn } = require('child_process');
 const basicAuth = require('express-basic-auth');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+require('dotenv').config();
 const { getFileNames, readJsonFiles } = require("./utils/utils");
-
+const ENV = process.env;
 // Store running processes and their logs
 const processes = new Map();
 const ALLOWED_TEST_FILENAMES = new Set(getFileNames());
@@ -89,6 +90,10 @@ app.post('/api/run-performance-test', auth, (req, res) => {
     startTime: new Date(),
     status: 'initializing',
     command: commandData,
+    testUrl: baseUrl,
+    feedSize,
+    testPath,
+    browser,
     logs: [],
     process: null,
     exitCode: null
@@ -99,6 +104,21 @@ app.post('/api/run-performance-test', auth, (req, res) => {
   try {
     // Spawn the process
     const process = spawn(commandData.command, commandData.args, commandData.options);
+    fetch(ENV.SLACK_WEBHOOK_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: [`Frontend Performance Test Started:-`,
+            `Test name: ${processInfo.testPath}`,
+            `Test URL: ${processInfo.testUrl}`,
+            `Feed size: ${processInfo.feedSize}`,
+            `Browser: ${processInfo.browser}`,
+            `Status: ${processInfo.status}`,].join('\n'),
+        })
+      });
     processInfo.process = process;
     processInfo.status = 'running';
 
@@ -121,6 +141,29 @@ app.post('/api/run-performance-test', auth, (req, res) => {
         exitCode: code,
         logs: processInfo.logs
       });
+      // curl -X POST -H 'Content-type: application/json' --data '{"text":"Performance-Infra reports"}' https://hooks.slack.com/services/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
+      const resultsLog = processInfo.logs.find(log => log.includes('initial'));
+      let testStatus = 'failed';
+      if(resultsLog.includes('initial') && resultsLog.includes('reload')) {
+        testStatus = 'complete';
+      }
+      fetch(ENV.SLACK_WEBHOOK_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: [testStatus === 'complete' ? `Frontend Performance Tests Completed:-` : `Frontend Performance Tests Error:-`,
+              `Test name: ${processInfo.testPath}`,
+              `Test URL: ${processInfo.testUrl}`,
+              `Feed size: ${processInfo.feedSize}`,
+              `Browser: ${processInfo.browser}`,
+              `Status: ${processInfo.status}`,
+              `Test Results: ${processInfo.logs.find(log => log.includes('initial'))
+                ?.replaceAll('[33m', '\'')?.replaceAll('[39m', '\'')}`,].join('\n')
+          })
+        });
     });
 
     process.on('error', (error) => {
@@ -227,7 +270,6 @@ app.get('/api/test-readings', auth, async (req, res) => {
 });
 
 
-// WebSocket handling remains the same
 logsNamespace.on('connection', (socket) => {
   const processId = socket.handshake.query.processId;
 
