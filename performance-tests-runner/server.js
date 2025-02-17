@@ -161,7 +161,9 @@ app.post('/api/run-performance-test', auth, (req, res) => {
               `Browser: ${processInfo.browser}`,
               `Status: ${processInfo.status}`,
               `Test Results: ${processInfo.logs.find(log => log.includes('initial'))
-                ?.replaceAll('[33m', '\'')?.replaceAll('[39m', '\'')}`,].join('\n')
+                ?.replaceAll('[32m', '\'')
+                ?.replaceAll('[33m', '\'')
+                ?.replaceAll('[39m', '\'')}`,].join('\n')
           })
         });
     });
