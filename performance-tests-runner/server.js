@@ -144,7 +144,7 @@ app.post('/api/run-performance-test', auth, (req, res) => {
       // curl -X POST -H 'Content-type: application/json' --data '{"text":"Performance-Infra reports"}' https://hooks.slack.com/services/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
       const resultsLog = processInfo.logs.find(log => log.includes('initial'));
       let testStatus = 'failed';
-      if(resultsLog.includes('initial') && resultsLog.includes('reload')) {
+      if(resultsLog && resultsLog?.includes('initial') && resultsLog?.includes('reload')) {
         testStatus = 'complete';
       }
       fetch(ENV.SLACK_WEBHOOK_URL,
