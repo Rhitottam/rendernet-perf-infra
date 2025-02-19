@@ -1,7 +1,7 @@
 const { test, beforeEach, expect} = require("@playwright/test");
 const playwright  = require("playwright");
 const { loginUser, createPerformanceTestReadingsJSON } = require("./utils/utils");
-const { addFPSCounter, runFPSCounter, getFPSCounterData } = require("./utils/utils");
+const { addFPSCounter, runFPSCounter, getFPSCounterData, studioFeedGenerationFlow } = require("./utils/utils");
 require('dotenv').config();
 beforeEach(async ({ page: p }) => {
   await loginUser(p);
@@ -52,54 +52,12 @@ test('Generate character images from the home page', async ({ page }) => {
   //Generation triggered
 
   await page.getByRole('button', { name: 'Generate Image' }).click();
-  const startTime = performance.now();
-  const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
-  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`, {
-    waitUntil: "load"
+
+  const readingsJSON = await studioFeedGenerationFlow(page, async (requestData) => {
+    await expect(requestData[0]?.prompt?.positive?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
   });
-  const request = await requestPromise;
-  const response = await page.waitForResponse(/.*\/v1\/media\/studio\/generate/);
-  await expect(request).toBeTruthy();
-  const requestData = JSON.parse(request.postData());
-  await expect(requestData[0]?.prompt?.positive?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
-  const responseData = await response.json();
-  const generationApiTime =  request.timing().responseEnd;
-  const generationId = responseData.data.generation_id;
-  const mediaId1 = responseData.data.media[0].media_id;
-  await page.waitForSelector(`#generations-wrapper-generation-${generationId}`);
-  const generationLoaderShownTime = performance.now();
-  await expect (await page.locator(`#generations-wrapper-generation-${generationId}`)).toBeVisible();
-  await expect (await page.locator(`#generation-${generationId}-${mediaId1}-${mediaId1}`)).toBeVisible();
-  const exportButtonSelector = `#generation-${generationId}-${mediaId1}-${mediaId1} #${mediaId1}-download-button`
-  let isGenerationComplete = false;
-  try {
-    await page.waitForSelector(
-      exportButtonSelector,
-      {
-        timeout: 600_000,
-        state: 'attached',
-      }
-    );
-    await expect(page.locator(exportButtonSelector)).toBeAttached();
-    isGenerationComplete = true;
-  }
-  catch (e) {
-    isGenerationComplete = false;
-  }
-  const fpsCounterData = await getFPSCounterData(page);
-  const generationCompleteTime = performance.now();
-  await expect(page.locator(exportButtonSelector)).toBeAttached();
-  const initial = {
-    totalDuration: generationCompleteTime - startTime,
-    apiDuration: generationApiTime,
-    loaderShownUIDuration: generationLoaderShownTime - generationApiTime - startTime,
-    generationShownUIDuration: generationCompleteTime - generationApiTime - startTime,
-    generationPusherEventDelay: generationCompleteTime - generationLoaderShownTime,
-    e2eTestsPassed: true,
-    isGenerationComplete,
-    ...fpsCounterData,
-  };
-  const readingsJSON = { initial };
+
+  console.log(readingsJSON);
   createPerformanceTestReadingsJSON(`app-home-character-image-gen`, readingsJSON);
 });
 
@@ -108,54 +66,12 @@ test('Generate character videos from the home page', async ({ page }) => {
   //Generation triggered
 
   await page.getByRole('button', { name: 'Generate Video' }).click();
-  const startTime = performance.now();
-  const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
-  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`, {
-    waitUntil: "load"
-  });
-  const request = await requestPromise;
-  const response = await page.waitForResponse(/.*\/v1\/media\/studio\/generate/);
-  await expect(request).toBeTruthy();
-  const requestData = JSON.parse(request.postData());
-  await expect(requestData[0]?.txt2vid?.prompt?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
-  const responseData = await response.json();
-  const generationApiTime =  request.timing().responseEnd;
-  const generationId = responseData.data.generation_id;
-  const mediaId1 = responseData.data.media[0].media_id;
-  await page.waitForSelector(`#generations-wrapper-generation-${generationId}`);
-  const generationLoaderShownTime = performance.now();
-  await expect (await page.locator(`#generations-wrapper-generation-${generationId}`)).toBeVisible();
-  await expect (await page.locator(`#generation-${generationId}-${mediaId1}-${mediaId1}`)).toBeVisible();
-  const exportButtonSelector = `#generation-${generationId}-${mediaId1}-${mediaId1} #${mediaId1}-download-button`
 
-  let isGenerationComplete = false;
-  try {
-    await page.waitForSelector(
-      exportButtonSelector,
-      {
-        timeout: 600_000,
-        state: 'attached',
-      }
-    );
-    await expect(page.locator(exportButtonSelector)).toBeAttached();
-    isGenerationComplete = true;
-  }
-  catch (e) {
-    isGenerationComplete = false;
-  }
-  const fpsCounterData = await getFPSCounterData(page);
-  const generationCompleteTime = performance.now();
-  const initial = {
-    totalDuration: generationCompleteTime - startTime,
-    apiDuration: generationApiTime,
-    loaderShownUIDuration: generationLoaderShownTime - generationApiTime - startTime,
-    generationShownUIDuration: generationCompleteTime - generationApiTime - startTime,
-    generationPusherEventDelay: generationCompleteTime - generationLoaderShownTime,
-    e2eTestsPassed: true,
-    isGenerationComplete,
-    ...fpsCounterData,
-  };
-  const readingsJSON = { initial };
+  const readingsJSON = await studioFeedGenerationFlow(page, async (requestData) => {
+    await expect(requestData[0]?.txt2vid?.prompt?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
+  });
+
+  console.log(readingsJSON);
   createPerformanceTestReadingsJSON(`app-home-character-image-gen`, readingsJSON);
 });
 

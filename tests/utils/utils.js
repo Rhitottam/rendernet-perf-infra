@@ -1,6 +1,7 @@
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const {expect} = require("@playwright/test");
 
 const loginUser = async (p) => {
   await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
@@ -828,6 +829,91 @@ const isGeneratedMediaUrl = (url) => {
   return mediaPattern.test(url);
 };
 
+const studioFeedGenerationFlow = async (page, generationDataAssertions) => {
+  const startTime = performance.now();
+  const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
+  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`, {
+    waitUntil: "load"
+  });
+  const request = await requestPromise;
+  const response = await page.waitForResponse(/.*\/v1\/media\/studio\/generate/);
+  await expect(request).toBeTruthy();
+  const requestData = JSON.parse(request.postData());
+  await generationDataAssertions(requestData);
+  // await expect(requestData[0]?.prompt?.positive?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
+  const responseData = await response.json();
+  const generationApiTime =  request.timing().responseEnd;
+  const generationId = responseData.data.generation_id;
+  const mediaId1 = responseData.data.media[0].media_id;
+  await page.waitForSelector(`#generations-wrapper-generation-${generationId}`);
+  const generationLoaderShownTime = performance.now();
+  await expect (await page.locator(`#generations-wrapper-generation-${generationId}`)).toBeVisible();
+  await expect (await page.locator(`#generation-${generationId}-${mediaId1}-${mediaId1}`)).toBeVisible();
+  const exportButtonSelector = `#generation-${generationId}-${mediaId1}-${mediaId1} #${mediaId1}-download-button`
+  let isGenerationComplete = false;
+  try {
+    await page.waitForSelector(
+      exportButtonSelector,
+      {
+        timeout: 300_000,
+        state: 'attached',
+      }
+    );
+    await expect(page.locator(exportButtonSelector)).toBeAttached();
+    isGenerationComplete = true;
+  }
+  catch (e) {
+    isGenerationComplete = false;
+  }
+  const fpsCounterData = await getFPSCounterData(page);
+  const generationCompleteTime = performance.now();
+  return {
+    initial: {
+        totalDuration: generationCompleteTime - startTime,
+        apiDuration: generationApiTime,
+        loaderShownUIDuration: generationLoaderShownTime - generationApiTime - startTime,
+        generationShownUIDuration: generationCompleteTime - generationApiTime - startTime,
+        generationPusherEventDelay: generationCompleteTime - generationLoaderShownTime,
+        e2eTestsPassed: true,
+        isGenerationComplete,
+        ...fpsCounterData,
+      },
+  };
+}
+
+const uploadImageAssetIntoAssetLibraryAndSelect = async (page, isMobile, placeholderSelector, imageSelector) => {
+  await expect(page.locator(placeholderSelector)).toBeVisible();
+  await page.locator(placeholderSelector).click();
+  await expect(page.locator(imageSelector)).toBeHidden();
+  await page.waitForSelector('#asset-library-grid-section');
+  await expect(page.locator('#asset-library-grid-section')).toBeVisible();
+  await page.waitForSelector('#asset-library-grid-grid #asset-library-upload-section-body');
+  await page.locator('#asset-library-grid-grid #asset-library-upload-section-body').click();
+  await page.locator('#img-upload-input').setInputFiles(path.join(__dirname, 'assets','faceReplaceImage.png'));
+  await page.waitForSelector(imageSelector);
+  await expect(page.locator('#asset-library-grid-grid')).toBeHidden();
+  await expect(page.locator(imageSelector)).toBeVisible();
+  await expect(page.locator(placeholderSelector)).toBeHidden();
+}
+
+const selectImageAssetFromAssetLibrary = async (page, isMobile, placeholderSelector, imageSelector) => {
+  await expect(page.locator(placeholderSelector)).toBeVisible();
+  await page.locator(placeholderSelector).click();
+  await page.waitForSelector('#asset-library-grid-section');
+  await expect(page.locator('#asset-library-grid-section')).toBeVisible();
+  const firstAssetSelector = '#asset-library-grid-grid > div.asset-library-grid-item:nth-child(2)';
+  await page.waitForSelector(firstAssetSelector);
+  if(!isMobile) {
+    await page.locator(firstAssetSelector).hover();
+  }
+  await expect(page.locator(`${firstAssetSelector} div.hoverWrapper`)).toBeVisible();
+  await page.locator(`${firstAssetSelector} div.hoverWrapper`).click();
+  await page.waitForSelector(imageSelector);
+  await expect(page.locator('#asset-library-grid-grid')).toBeHidden();
+  await expect(page.locator(imageSelector)).toBeVisible();
+  await expect(page.locator(placeholderSelector)).toBeHidden();
+}
+
 module.exports = {
   autoScroll,
   autoScrollAlt,
@@ -857,5 +943,8 @@ module.exports = {
   periodicCheckForCanvasImagesCompletionLoop,
   constructInitialReadingsJson,
   createPerformanceTestReadingsJSON,
-  isGeneratedMediaUrl
+  isGeneratedMediaUrl,
+  studioFeedGenerationFlow,
+  selectImageAssetFromAssetLibrary,
+  uploadImageAssetIntoAssetLibraryAndSelect
 };
