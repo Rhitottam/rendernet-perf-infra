@@ -18,7 +18,9 @@ const DATA_SIZE_OPTIONS = [
 
 // You can move this to a configuration file or fetch from API
 const APP_URLS = [
+  { name: 'Production App', url: 'https://app.rendernet.ai/' },
   { name: 'Staging App', url: 'https://rendernet-stg.web.app/' },
+  { name: 'App for testing generations', url: 'https://rendernet-stg--pr1698-update-refactor-for-4fvmb5a0.web.app/' },
   { name: 'Base App Unoptimized', url: 'https://rendernet-stg--pr1552-testing-studio-loadi-wymr9vwi.web.app/' },
   { name: 'App with Canvas Optimized with Low res images', url: 'https://rendernet-stg--pr1606-testing-canvas-loadi-rctnyn44.web.app/' },
   // Add more URLs as needed
