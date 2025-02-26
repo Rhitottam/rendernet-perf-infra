@@ -669,8 +669,10 @@ const checkForCanvasImagesCompletion = async (p) => {
       const canvasImageShapes = document.querySelectorAll('div[data-shape-type="canvas-image"]');
       const completedCanvasImageShapes = Array.from(canvasImageShapes ?? []).filter((imageShape) => {
         const images = imageShape.getElementsByTagName('img');
-        return Array.from(images ?? []).every((image) => image?.src?.length &&
-          (image?.src?.startsWith('blob') || image?.src?.startsWith('https')));
+        return Array.from(images ?? []).every((image) => {
+          return image?.src?.length &&
+          !image?.src?.includes('static/media/transparent-square')
+        });
       });
       if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
         cb({
