@@ -2,6 +2,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const {expect} = require("@playwright/test");
+const {mockSuccessTxtToImgGenerateResponse} = require("./mocks");
 
 const loginUser = async (p) => {
   await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
@@ -668,7 +669,8 @@ const checkForCanvasImagesCompletion = async (p) => {
       const canvasImageShapes = document.querySelectorAll('div[data-shape-type="canvas-image"]');
       const completedCanvasImageShapes = Array.from(canvasImageShapes ?? []).filter((imageShape) => {
         const images = imageShape.getElementsByTagName('img');
-        return Array.from(images ?? []).every((image) => image?.src?.length);
+        return Array.from(images ?? []).every((image) => image?.src?.length &&
+          (image?.src?.startsWith('blob') || image?.src?.startsWith('https')));
       });
       if (canvasImageShapes?.length === completedCanvasImageShapes?.length) {
         cb({
@@ -829,10 +831,107 @@ const isGeneratedMediaUrl = (url) => {
   return mediaPattern.test(url);
 };
 
+const handleServiceWorkerRequest = async (route) => {
+  try {
+    // Get the original response
+    const response = await route.fetch();
+    const originalContent = await response.text();
+
+    // Modify the content
+    let modifiedContent = originalContent
+      .replace('/* COMMENTED FOR TESTS', '')
+      .replace('COMMENTED FOR TESTS */', '');
+
+    console.log('Service worker modified');
+
+    // Fulfill with modified content
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/javascript',
+      body: modifiedContent,
+      headers: response.headers() // Preserve original headers
+    });
+  } catch (error) {
+    console.error('Error handling service worker request:', error);
+    await route.continue();
+  }
+}
+const webSocketData = {};
+const mockWebsocket = async (page) => {
+
+  await page.routeWebSocket('wss://ws-mt1.pusher.com/app/c3fb4c2d6c2e4490eb31?protocol=7&client=js&version=8.3.0&flash=false', ws => {
+    // ws.send('{"event":"pusher:subscribe","data":{"channel":"private-studio-1>>>>>"}}');
+    webSocketData.ws = ws;
+    console.log('on Websocket');
+    const server = ws.connectToServer();
+    webSocketData.server = server;
+    ws.onMessage(message => {
+      console.log('Web SOCKET MESSAGE', message);
+      const messageData = JSON.parse(message);
+      if (messageData.event === "pusher:subscribe") {
+        webSocketData.channel = messageData.data.channel;
+      }
+      server.send(message);
+    });
+    server.onMessage(message => {
+      console.log('Web SOCKET SERVER MESSAGE', message);
+      ws.send(message);
+    });
+  });
+}
+
+const mockErrorStudioGenerationFlow = async (page, context) => {
+  await context.route('**/*', async (route) => {
+    const json = {
+      data: {},
+      err: {
+        code: '100',
+        message: 'Testing Error Generations'
+      }
+    }
+    console.log('Route fulfilled', route.request().method(), route.request().url());
+    await route.continue();
+  })
+  // console.log('Service worker mocking');
+  // await page.addInitScript(() => {
+  //   window.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = 1;
+  // })
+  // page.context().on('serviceworker', async (sw) => {
+  //   console.log('Service Worker Registered: ', sw?.url());
+  //   const serviceWorkerURl = sw?.url();
+  //   if(serviceWorkerURl.includes('sw-v1.0.2.js')) {
+  //     // await page.context().waitForEvent('request', r => r.url().endsWith('/sw-v1.0.2.js'));
+  //     // await page.context().route('**/sw-v1.0.2.js', handleServiceWorkerRequest);
+  //     // sw.route
+  //     // await sw.route(serviceWorkerURl, handleServiceWorkerRequest);
+  //   }
+  //   // await sw.route(sw.url)
+  // });
+  // await page.context().waitForEvent('request', r => r.url().endsWith('/sw-v1.0.2.js'));
+  await context.route('**/sw-v1.0.2.js', handleServiceWorkerRequest);
+}
+
+const studioFeedGenerationErrorFlow = async (page) => {
+  const startTime = performance.now();
+  const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
+  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`.replaceAll(/\/+/g,'/'), {
+    waitUntil: "load"
+  });
+  const request = await requestPromise;
+  const response = await page.waitForResponse(/.*\/v1\/media\/studio\/generate/);
+  await expect(request).toBeTruthy();
+  const requestData = JSON.parse(request.postData());
+  // await generationDataAssertions(requestData);
+  // await expect(requestData[0]?.prompt?.positive?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
+  const responseData = await response.json();
+  console.log(responseData);
+  const generationApiTime =  request.timing().responseEnd;
+}
+
 const studioFeedGenerationFlow = async (page, generationDataAssertions) => {
   const startTime = performance.now();
   const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
-  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`, {
+  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`.replaceAll(/\/+/g,'/'), {
     waitUntil: "load"
   });
   const request = await requestPromise;
@@ -914,6 +1013,83 @@ const selectImageAssetFromAssetLibrary = async (page, isMobile, placeholderSelec
   await expect(page.locator(placeholderSelector)).toBeHidden();
 }
 
+const handleGenerationRouting = async (page, context, mockResponse, options = { isError: false }) => {
+  const browserType = context.browser()?.browserType().name();
+  const isWebKit = browserType === 'webkit';
+
+  // Common route handler for generation endpoints
+  const handleGenerateRequest = async (route) => {
+    const url = route.request().url();
+    const method = route.request().method();
+
+    // Only intercept POST requests to generate endpoints
+    if (method === 'POST' && url.includes('/generate')) {
+      console.log(`Intercepting generation request for ${browserType}:`, url);
+      await route.fulfill({
+        status: options.isError ? 400 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockResponse)
+      });
+    } else {
+      await route.continue();
+    }
+  };
+
+  // WebKit-specific service worker modification
+  const handleServiceWorkerRequest = async (route) => {
+    try {
+      const response = await route.fetch();
+      const originalContent = await response.text();
+
+      // Add the mock response to the service worker
+      const mockResponseString = JSON.stringify(mockResponse);
+      const swInterceptCode = `
+        // Mock generation response
+        const mockResponse = ${mockResponseString};
+        
+        // Intercept fetch requests
+        self.addEventListener('fetch', (event) => {
+          if (event.request.method === 'POST' && event.request.url.includes('/generate')) {
+            event.respondWith(
+              new Response(JSON.stringify(mockResponse), {
+                status: ${options.isError ? 400 : 200},
+                headers: { 'Content-Type': 'application/json' }
+              })
+            );
+          }
+        });
+      `;
+
+      const modifiedContent = originalContent + '\n' + swInterceptCode;
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/javascript',
+        body: modifiedContent,
+        headers: response.headers()
+      });
+
+      console.log('Service worker modified for WebKit');
+    } catch (error) {
+      console.error('Error handling service worker request:', error);
+      await route.continue();
+    }
+  };
+
+  if (isWebKit) {
+    // For WebKit, modify the service worker and set up route handling
+    await context.route('**/sw*.js', handleServiceWorkerRequest);
+
+    // Wait for service worker to be installed
+    // await page.waitForFunction(() => {
+    //   return navigator.serviceWorker && navigator.serviceWorker.controller;
+    // });
+  } else {
+    // For other browsers, just set up route handling
+    await context.route('**/*', handleGenerateRequest);
+  }
+};
+
 module.exports = {
   autoScroll,
   autoScrollAlt,
@@ -946,5 +1122,10 @@ module.exports = {
   isGeneratedMediaUrl,
   studioFeedGenerationFlow,
   selectImageAssetFromAssetLibrary,
-  uploadImageAssetIntoAssetLibraryAndSelect
+  uploadImageAssetIntoAssetLibraryAndSelect,
+  mockErrorStudioGenerationFlow,
+  studioFeedGenerationErrorFlow,
+  handleGenerationRouting,
+  mockWebsocket,
+  webSocketData,
 };
