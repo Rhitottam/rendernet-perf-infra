@@ -933,7 +933,7 @@ const studioFeedGenerationErrorFlow = async (page) => {
 const studioFeedGenerationFlow = async (page, generationDataAssertions) => {
   const startTime = performance.now();
   const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
-  await page.waitForURL(`${process.env.BASE_URL}/app/text-to-image`.replaceAll(/\/+/g,'/'), {
+  await page.waitForURL(`**/app/text-to-image`, {
     waitUntil: "load"
   });
   const request = await requestPromise;
@@ -982,19 +982,61 @@ const studioFeedGenerationFlow = async (page, generationDataAssertions) => {
   };
 }
 
-const uploadImageAssetIntoAssetLibraryAndSelect = async (page, isMobile, placeholderSelector, imageSelector) => {
+const ASSET_TYPES = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO: 'audio',
+}
+
+const uploadAssetIntoAssetLibraryAndSelect = async (
+  page,
+  isMobile,
+  placeholderSelector,
+  mediaSelector = null,
+  type = ASSET_TYPES.IMAGE
+) => {
   await expect(page.locator(placeholderSelector)).toBeVisible();
   await page.locator(placeholderSelector).click();
-  await expect(page.locator(imageSelector)).toBeHidden();
+  if(mediaSelector) {
+    await expect(page.locator(mediaSelector)).toBeHidden();
+  }
   await page.waitForSelector('#asset-library-grid-section');
   await expect(page.locator('#asset-library-grid-section')).toBeVisible();
-  await page.waitForSelector('#asset-library-grid-grid #asset-library-upload-section-body');
-  await page.locator('#asset-library-grid-grid #asset-library-upload-section-body').click();
-  await page.locator('#img-upload-input').setInputFiles(path.join(__dirname, 'assets','faceReplaceImage.png'));
-  await page.waitForSelector(imageSelector);
+  if(type === ASSET_TYPES.IMAGE) {
+    await page.waitForSelector('#asset-library-upload-section-body');
+    await page.waitForSelector('#asset-library-upload-image');
+    await page.locator('#asset-library-upload-section-body').click();
+    await page.locator('#img-upload-input').setInputFiles(path.join(__dirname, 'assets', 'image-asset.png'));
+  }
+  else if(type === ASSET_TYPES.VIDEO) {
+    await page.waitForSelector('#video-asset-upload-section-body');
+    await page.waitForSelector('#asset-library-upload-image');
+    // await page.locator('#video-asset-upload-section-body').click();
+    await page.locator('#video-upload-input').setInputFiles(path.join(__dirname, 'assets', 'video-asset.mp4'));
+  }
+  else if(type === ASSET_TYPES.AUDIO) {
+    await page.waitForSelector('#audio-asset-upload-section-body');
+    await page.waitForSelector('#asset-library-upload-image');
+    await page.locator('#audio-asset-upload-section-body').click();
+    await page.locator('#audio-upload-input').setInputFiles(path.join(__dirname, 'assets', 'audio-asset.mp3'));
+  }
+
+  await page.waitForSelector('#asset-library-grid-grid', { state: 'hidden'});
   await expect(page.locator('#asset-library-grid-grid')).toBeHidden();
-  await expect(page.locator(imageSelector)).toBeVisible();
+  if(mediaSelector) {
+    await expect(page.locator(mediaSelector)).toBeVisible();
+  }
   await expect(page.locator(placeholderSelector)).toBeHidden();
+}
+
+const uploadImageAssetIntoAssetLibraryAndSelect = async (page, isMobile, placeholderSelector, mediaSelector, type) => {
+  await uploadAssetIntoAssetLibraryAndSelect(page, isMobile, placeholderSelector, mediaSelector, ASSET_TYPES.IMAGE);
+}
+const uploadVideoAssetIntoAssetLibraryAndSelect = async (page, isMobile, placeholderSelector, mediaSelector, type) => {
+  await uploadAssetIntoAssetLibraryAndSelect(page, isMobile, placeholderSelector, mediaSelector, ASSET_TYPES.VIDEO);
+}
+const uploadAudioAssetIntoAssetLibraryAndSelect = async (page, isMobile, placeholderSelector, mediaSelector, type) => {
+  await uploadAssetIntoAssetLibraryAndSelect(page, isMobile, placeholderSelector, mediaSelector, ASSET_TYPES.AUDIO);
 }
 
 const selectImageAssetFromAssetLibrary = async (page, isMobile, placeholderSelector, imageSelector) => {
@@ -1130,4 +1172,6 @@ module.exports = {
   handleGenerationRouting,
   mockWebsocket,
   webSocketData,
+  uploadVideoAssetIntoAssetLibraryAndSelect,
+  uploadAudioAssetIntoAssetLibraryAndSelect
 };
