@@ -26,8 +26,9 @@ test('Generate Clothes Swap Images from App Home', async ({ page, isMobile }) =>
   await page.waitForSelector('#garments-templates-cont > div:nth-child(1) img')
   await expect(page.locator('#garments-templates-cont > div:nth-child(1) img')).toBeVisible();
   await page.locator('#garments-templates-cont > div:nth-child(1) img').click();
+  await page.waitForSelector('img#clothes-swap-upload-photo-cont');
   await expect(page.locator('#change-cloth-asset-wrapper')).toBeHidden();
-  await expect(page.locator('#clothes-swap-upload-photo-cont')).toBeVisible();
+  await expect(page.locator('img#clothes-swap-upload-photo-cont')).toBeVisible();
 
   await expect(page.locator('#form-control-clothing-change-types')).toContainText('One Pieces');
 
@@ -35,8 +36,9 @@ test('Generate Clothes Swap Images from App Home', async ({ page, isMobile }) =>
   await page.waitForSelector('#target-image-templates-grid > div:nth-child(1) img')
   await expect(page.locator('#target-image-templates-grid > div:nth-child(1) img')).toBeVisible();
   await page.locator('#target-image-templates-grid > div:nth-child(1) img').click();
+  await page.waitForSelector('#target-image-cont img');
   await expect(page.locator('#target-image-upload-cont')).toBeHidden();
-  await expect(page.locator('#target-image-cont')).toBeVisible();
+  await expect(page.locator('#target-image-cont img')).toBeVisible();
 
   await expect(page.locator('#change-clothing-generate-button')).toBeEnabled();
 
