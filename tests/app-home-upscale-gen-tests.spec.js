@@ -4,7 +4,7 @@ import {
   loginUser,
   runFPSCounter,
   studioFeedGenerationFlow,
-  selectImageAssetFromAssetLibrary, createPerformanceTestReadingsJSON
+  selectImageAssetFromAssetLibrary, createPerformanceTestReadingsJSON, uploadImageAssetIntoAssetLibraryAndSelect
 } from "./utils/utils";
 
 
@@ -24,7 +24,10 @@ test('Generate Upscale Images from App Home', async ({ page, isMobile }) => {
 
   const placeHolderSelector = '#upscale-image-drag-drop';
   const imageSelector = '#upscale-image';
-  await selectImageAssetFromAssetLibrary(
+  // await selectImageAssetFromAssetLibrary(
+  //   page, isMobile, placeHolderSelector, imageSelector
+  // );
+  await uploadImageAssetIntoAssetLibraryAndSelect(
     page, isMobile, placeHolderSelector, imageSelector
   );
 
