@@ -930,6 +930,82 @@ const studioFeedGenerationErrorFlow = async (page) => {
   const generationApiTime =  request.timing().responseEnd;
 }
 
+const studioFeedMusicVideoGenerationFlow = async (page, generationDataAssertions) => {
+  const startTime = performance.now();
+  const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
+  await page.waitForURL(`**/app/text-to-image`, {
+    waitUntil: "load"
+  });
+  const request = await requestPromise;
+  const response = await page.waitForResponse(/.*\/v1\/media\/studio\/generate/);
+  await expect(request).toBeTruthy();
+  const requestData = JSON.parse(request.postData());
+  await generationDataAssertions(requestData);
+  // await expect(requestData[0]?.prompt?.positive?.replaceAll(/\s+/g, '')).toEqual(newPrompt?.replace(`@${character}`, '^character^').replaceAll(/\s+/g, ''));
+  const responseData = await response.json();
+  const generationApiTime =  request.timing().responseEnd;
+  const generationId = responseData.data.generation_id;
+  const mediaId1 = responseData.data.media[0].media_id;
+  await page.waitForSelector(`#generations-wrapper-generation-${generationId}`);
+  const generationLoaderShownTime = performance.now();
+  await expect (await page.locator(`#generations-wrapper-generation-${generationId}`)).toBeVisible();
+  await expect (await page.locator(`#music-video-in-progress-loader-${generationId}-${mediaId1}`)).toBeVisible();
+  const resumeGenerationButtonSelector = `#view-music-video-progress-button-${generationId}-${mediaId1}`
+  await expect(page.locator(resumeGenerationButtonSelector)).toBeAttached();
+  await page.waitForSelector('#music-video-scenes-modal-container', {
+    state: 'visible',
+  });
+  const musicVideoModalShownTime = performance.now();
+  const locators = await page.locator('.music-video-thumbnails-loader').all();
+  await Promise.all(locators.map(locator => expect(locator).toBeHidden({
+    timeout: 120_000,
+  })));
+
+  await expect(page.locator('#music-video-modal-generate-button')).toBeEnabled();
+  await page.locator('#music-video-modal-generate-button').click();
+  const scenesCompletionTime = performance.now();
+
+  await page.waitForSelector('#music-video-scenes-modal-container', {
+    state: 'hidden',
+  });
+  await expect(page.locator('#music-video-scenes-modal-container')).toBeHidden();
+  await page.waitForSelector(`#generations-wrapper-generation-${generationId} .music-video-loader`);
+  const musicVideoFinalLoaderShownTime = performance.now();
+  const exportButtonSelector = `#generation-${generationId}-${mediaId1}-${mediaId1} #${mediaId1}-download-button`
+  let isGenerationComplete = false;
+  try {
+    await page.waitForSelector(
+      exportButtonSelector,
+      {
+        timeout: 300_000,
+        state: 'attached',
+      }
+    );
+    await expect(page.locator(exportButtonSelector)).toBeAttached();
+    isGenerationComplete = true;
+  }
+  catch (e) {
+    isGenerationComplete = false;
+  }
+  const fpsCounterData = await getFPSCounterData(page);
+  const generationCompleteTime = performance.now();
+  return {
+    initial: {
+      totalDuration: generationCompleteTime - startTime,
+      apiDuration: generationApiTime,
+      loaderShownUIDuration: generationLoaderShownTime - generationApiTime - startTime,
+      musicVideoModalShownDuration: musicVideoModalShownTime - startTime,
+      scenesCompletionDuration: scenesCompletionTime - musicVideoModalShownTime,
+      musicVideoFinalLoaderShownDuration: musicVideoFinalLoaderShownTime - scenesCompletionTime,
+      generationPusherEventDelay: generationCompleteTime - musicVideoFinalLoaderShownTime,
+      isGenerationComplete,
+      e2eTestsPassed: true,
+      ...fpsCounterData,
+    },
+  };
+}
+
+
 const studioFeedGenerationFlow = async (page, generationDataAssertions) => {
   const startTime = performance.now();
   const requestPromise = page.waitForRequest(/.*\/v1\/media\/studio\/generate/);
@@ -1173,5 +1249,6 @@ module.exports = {
   mockWebsocket,
   webSocketData,
   uploadVideoAssetIntoAssetLibraryAndSelect,
-  uploadAudioAssetIntoAssetLibraryAndSelect
+  uploadAudioAssetIntoAssetLibraryAndSelect,
+  studioFeedMusicVideoGenerationFlow
 };
