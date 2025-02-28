@@ -957,11 +957,18 @@ const studioFeedMusicVideoGenerationFlow = async (page, generationDataAssertions
   });
   const musicVideoModalShownTime = performance.now();
   const locators = await page.locator('.music-video-thumbnails-loader').all();
-  await Promise.all(locators.map(locator => expect(locator).toBeHidden({
-    timeout: 120_000,
-  })));
 
-  await expect(page.locator('#music-video-modal-generate-button')).toBeEnabled();
+  for(let index= 0; index < locators.length; index += 1) {
+    await page.waitForSelector(`.music-video-thumbnails-loader:nth-child(${index+1})`, {
+      timeout: 60_000,
+      state: 'hidden',
+    })
+  }
+
+  await page.waitForSelector('#music-video-scene-item-0');
+  await expect(page.locator('#music-video-modal-generate-button')).toBeEnabled({
+    timeout: 300_000,
+  });
   await page.locator('#music-video-modal-generate-button').click();
   const scenesCompletionTime = performance.now();
 
