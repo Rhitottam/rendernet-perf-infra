@@ -15,8 +15,8 @@ beforeEach(async ({ page: p }) => {
 test('Generate Music Videos from App Home', async ({ page, isMobile }) => {
   await addFPSCounter(page);
   await runFPSCounter(page);
-  await page.waitForSelector('#music-video-start-generate-button');
-  await page.locator('#music-video-start-generate-button').click();
+  await page.waitForSelector('#try-music-video-container');
+  await page.locator('#try-music-video-container').click();
 
   await page.waitForSelector('#music-video-modal-content-wrapper');
 
