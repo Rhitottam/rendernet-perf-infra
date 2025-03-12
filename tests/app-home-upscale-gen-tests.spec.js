@@ -50,5 +50,6 @@ test('Generate Upscale Images from App Home', async ({ page, isMobile }) => {
     await expect(requestData[0]).not.toBeNull();
   });
   console.log(readingsJSON);
-  createPerformanceTestReadingsJSON(`app-home-upscale-image-gen`, readingsJSON);
+  const testName = __filename.split('/').pop().split('.')[0]
+  createPerformanceTestReadingsJSON(testName , readingsJSON);
 });

@@ -10,7 +10,7 @@ const auditMetricsLabelMap = {
   'first-contentful-paint': 'firstContentfulPaint',
   'largest-contentful-paint': 'largestContentfulPaint',
   'speed-index': 'speedIndex',
-  'total-blocking-time': 'blocking Time',
+  'total-blocking-time': 'blockingTime',
   'interactive': 'timeToInteractive',
   'bootup-time': 'bootupTime',
 }
@@ -47,5 +47,6 @@ test('Run Lighthouse audit on initial load and reload of Studio feed', async () 
   }, {});
   const readingsJSON = { initial, reload };
   console.log(readingsJSON);
-  createPerformanceTestReadingsJSON(`studio-feed-lighthouse-metrics`, readingsJSON);
+  const testName = __filename.split('/').pop().split('.')[0]
+  createPerformanceTestReadingsJSON(testName , readingsJSON);
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getBasicAuthHeaders } from "../utils/auth";
+import CustomSelect from './CustomSelect';
 
 const BROWSER_OPTIONS = [
   { value: 'chromium', label: 'Chromium' },
@@ -20,7 +21,6 @@ const DATA_SIZE_OPTIONS = [
 const APP_URLS = [
   { name: 'Production App', url: 'https://app.rendernet.ai' },
   { name: 'Staging App', url: 'https://rendernet-stg.web.app' },
-  { name: 'App for testing generations', url: 'https://rendernet-stg--pr1698-update-refactor-for-4fvmb5a0.web.app' },
   { name: 'Base App Unoptimized', url: 'https://rendernet-stg--pr1552-testing-studio-loadi-wymr9vwi.web.app' },
   { name: 'App with Canvas Optimized with Low res images', url: 'https://rendernet-stg--pr1606-testing-canvas-loadi-cb3xvbv0.web.app' },
   // Add more URLs as needed
@@ -36,6 +36,9 @@ function ScriptExecutionSection() {
   const [error, setError] = useState(null);
   const [copyStatus, setCopyStatus] = useState({});
   const [testNameList, setTestNameList] = useState([]);
+  const [availableReports, setAvailableReports] = useState([]);
+  const [selectedReports, setSelectedReports] = useState([]);
+  const [sendSlackNotification, setSendSlackNotification] = useState(true);
 
   useEffect(() => {
     const fetchTestNames = async () => {
@@ -59,6 +62,51 @@ function ScriptExecutionSection() {
 
     fetchTestNames();
   }, []);
+
+  useEffect(() => {
+    const fetchTestReports = async () => {
+      if (!testName) {
+        setAvailableReports([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/test-readings`, {
+          headers: getBasicAuthHeaders(),
+        });
+        const data = await response.json();
+        
+        // Format reports from the filtered data
+        const reports = Object.entries(data)
+          .map(([key]) => {
+            const [, testName, url, date, time, dataSize] = key.split('|');
+            return {
+              key,
+              testName,
+              url,
+              date,
+              time,
+              dataSize: dataSize || '500'
+            };
+          })
+          .filter(data => {
+            return data.testName != null && data.time != null && data.date != null
+          })
+          .sort((a, b) => {
+            // Sort by date and time in descending order
+            const dateA = new Date(`${a.date} ${a.time.replace(/-/g, ':')}`);
+            const dateB = new Date(`${b.date} ${b.time.replace(/-/g, ':')}`);
+            return dateB - dateA;
+          });
+
+        setAvailableReports(reports);
+      } catch (err) {
+        console.error('Failed to fetch test reports:', err);
+      }
+    };
+
+    fetchTestReports();
+  }, [testName]);
 
   const handleCopy = async (url) => {
     try {
@@ -87,12 +135,15 @@ function ScriptExecutionSection() {
         method: 'POST',
         headers: {
           ...getBasicAuthHeaders(),
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
           baseUrl: appUrl, 
           browser, 
           testName,
-          feedSize: parseInt(dataSize, 10)
+          feedSize: parseInt(dataSize, 10),
+          compareWith: selectedReports.map(report => report.key),
+          sendSlackNotification
         }),
       });
 
@@ -170,8 +221,11 @@ function ScriptExecutionSection() {
               Test Name
             </label>
             <select
-              value={testName}
-              onChange={(e) => setTestName(e.target.value)}
+              value={testName || ''}
+              onChange={(e) => {
+                setTestName(e.target.value);
+                setSelectedReports([]);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md
                        focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             >
@@ -230,6 +284,46 @@ function ScriptExecutionSection() {
               ))}
             </select>
           </div>
+          {testName && (
+            <div className="md:col-span-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Compare with Previous Reports
+              </label>
+              <CustomSelect
+                options={availableReports}
+                value={selectedReports}
+                onChange={setSelectedReports}
+                placeholder="Select reports to compare with..."
+                isMulti={true}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="radio"
+            id="slackNotifyYes"
+            name="slackNotify"
+            checked={sendSlackNotification}
+            onChange={() => setSendSlackNotification(true)}
+            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+          />
+          <label htmlFor="slackNotifyYes" className="text-sm text-gray-700">
+            Send Slack Notification
+          </label>
+          
+          <input
+            type="radio"
+            id="slackNotifyNo"
+            name="slackNotify"
+            checked={!sendSlackNotification}
+            onChange={() => setSendSlackNotification(false)}
+            className="ml-4 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+          />
+          <label htmlFor="slackNotifyNo" className="text-sm text-gray-700">
+            Don&apos;t Send Notification
+          </label>
         </div>
 
         <button
@@ -240,7 +334,7 @@ function ScriptExecutionSection() {
                    focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50
                    disabled:cursor-not-allowed"
         >
-          {loading ? 'Running...' : 'Run performance Test'}
+          {loading ? 'Running...' : 'Run Performance Test'}
         </button>
 
         {error && (

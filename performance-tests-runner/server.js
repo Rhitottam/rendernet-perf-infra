@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const basicAuth = require('express-basic-auth');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 const { getFileNames, readJsonFiles } = require("./utils/utils");
 const ENV = process.env;
@@ -57,8 +58,8 @@ curl -X POST http://localhost:3000/run-performance-test \
      -d '{"testName": "studio-feed-performance-tests.spec.js ", "baseUrl": "http://localhost:3000"}'
 */
 // Run Performance Test
-app.post('/api/run-performance-test', auth, (req, res) => {
-  const { testName, baseUrl, browser='chromium', feedSize=500 } = req.body;
+app.post('/api/run-performance-test', auth, async (req, res) => {
+  const { testName, baseUrl, browser = 'chromium', feedSize = 500, compareWith = [], sendSlackNotification = true } = req.body;
 
   // Validate command
   if (!testName || !ALLOWED_TEST_FILENAMES.has(testName)) {
@@ -96,7 +97,9 @@ app.post('/api/run-performance-test', auth, (req, res) => {
     browser,
     logs: [],
     process: null,
-    exitCode: null
+    exitCode: null,
+    compareWith,
+    sendSlackNotification
   };
 
   processes.set(processId, processInfo);
@@ -104,21 +107,17 @@ app.post('/api/run-performance-test', auth, (req, res) => {
   try {
     // Spawn the process
     const process = spawn(commandData.command, commandData.args, commandData.options);
-    fetch(ENV.SLACK_WEBHOOK_URL,
-      {
+    
+    if (sendSlackNotification) {
+      fetch(ENV.SLACK_WEBHOOK_URL, {
         method: 'POST',
-        headers: {
-          'Content-type': 'application/json'
-        },
+        headers: { 'Content-type': 'application/json' },
         body: JSON.stringify({
-          text: [`Frontend Performance Test Started:-`,
-            `Test name: ${processInfo.testPath}`,
-            `Test URL: ${processInfo.testUrl}`,
-            `Feed size: ${processInfo.feedSize}`,
-            `Browser: ${processInfo.browser}`,
-            `Status: ${processInfo.status}`,].join('\n'),
+          text: formatSlackMessage(processInfo)
         })
       });
+    }
+
     processInfo.process = process;
     processInfo.status = 'running';
 
@@ -134,38 +133,30 @@ app.post('/api/run-performance-test', auth, (req, res) => {
       logsNamespace.to(processId).emit('log', log);
     });
 
-    process.on('close', (code) => {
+    process.on('close', async (code) => {
       processInfo.status = 'completed';
       processInfo.exitCode = code;
       logsNamespace.to(processId).emit('completed', {
         exitCode: code,
         logs: processInfo.logs
       });
-      // curl -X POST -H 'Content-type: application/json' --data '{"text":"Performance-Infra reports"}' https://hooks.slack.com/services/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
-      const resultsLog = processInfo.logs.find(log => log.includes('initial'));
-      let testStatus = 'failed';
-      if(resultsLog && resultsLog?.includes('initial') && resultsLog?.includes('reload')) {
-        testStatus = 'complete';
+
+      if (sendSlackNotification) {
+        try {
+          // Fetch test readings for comparisons
+          const testReadings = await readJsonFiles(path.join(__dirname, '../tests/utils/test-readings'));
+          
+          fetch(ENV.SLACK_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-type': 'application/json' },
+            body: JSON.stringify({
+              text: formatSlackMessage(processInfo, compareWith, testReadings)
+            })
+          });
+        } catch (error) {
+          console.error('Error sending Slack notification:', error);
+        }
       }
-      fetch(ENV.SLACK_WEBHOOK_URL,
-        {
-          method: 'POST',
-          headers: {
-            'Content-type': 'application/json'
-          },
-          body: JSON.stringify({
-            text: [testStatus === 'complete' ? `Frontend Performance Tests Completed:-` : `Frontend Performance Tests Error:-`,
-              `Test name: ${processInfo.testPath}`,
-              `Test URL: ${processInfo.testUrl}`,
-              `Feed size: ${processInfo.feedSize}`,
-              `Browser: ${processInfo.browser}`,
-              `Status: ${processInfo.status}`,
-              `Test Results: ${processInfo.logs.find(log => log.includes('initial'))
-                ?.replaceAll('[32m', '\'')
-                ?.replaceAll('[33m', '\'')
-                ?.replaceAll('[39m', '\'')}`,].join('\n')
-          })
-        });
     });
 
     process.on('error', (error) => {
@@ -257,9 +248,29 @@ app.get('/api/status/:processId', auth, (req, res) => {
 
 app.get('/api/test-readings', auth, async (req, res) => {
   try {
-    const directory = path.join(__dirname, '../tests/utils/test-readings'); // Adjust path as needed
+    const { testName } = req.query;
+    const directory = path.join(__dirname, '../tests/utils/test-readings');
     const jsonData = await readJsonFiles(directory);
-    res.header('Access-Control-Allow-Origin', '*')
+    // If testName is provided, filter the results
+    if (testName) {
+      const filteredData = Object.entries(jsonData)
+        .filter(([key]) => {
+          const [prefix, currentTestName] = key.split('|');
+          return prefix === 'test-data' && currentTestName === testName;
+        })
+        .reduce((acc, [key, value]) => ({
+          ...acc,
+          [key]: value
+        }), {});
+
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      return res.json(filteredData);
+    }
+
+    // If no testName provided, return all data
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.json(jsonData);
@@ -325,3 +336,95 @@ const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+const calculatePercentageChange = (current, previous) => {
+  const change = ((current - previous) / previous) * 100;
+  return change.toFixed(2);
+};
+
+const formatMetricComparison = (metricName, currentValue, previousValue) => {
+  const isTimingMetric = metricName.toLowerCase().includes('time') || 
+                        metricName.toLowerCase().includes('paint') || 
+                        metricName.toLowerCase().includes('interactive');
+  
+  if (!isTimingMetric) return null; // Only compare timing metrics
+
+  const percentageChange = calculatePercentageChange(currentValue, previousValue);
+  const isImprovement = currentValue < previousValue;
+
+  return {
+    metric: metricName,
+    current: currentValue,
+    previous: previousValue,
+    percentageChange,
+    isImprovement
+  };
+};
+
+const formatSlackMessage = (processInfo, comparisons = [], testReadings = {}) => {
+  let message = [
+    `Frontend Performance Test ${processInfo.status === 'completed' ? 'Completed' : 'Started'}:-`,
+    `Test name: ${processInfo.testPath}`,
+    `Test URL: ${processInfo.testUrl}`,
+    `Feed size: ${processInfo.feedSize}`,
+    `Browser: ${processInfo.browser}`,
+    `Status: ${processInfo.status}`
+  ];
+
+  // Add comparison results if test is completed and has comparisons
+  if (processInfo.status === 'completed' && comparisons.length > 0) {
+    const resultsLog = processInfo.logs.find(log => log.includes('initial'));
+    if (resultsLog) {
+      try {
+        // Sanitize ANSI color codes from the log
+        const sanitizedLog = resultsLog
+          .replaceAll('[32m', '\'')
+          .replaceAll('[33m', '\'')
+          .replaceAll('[39m', '\'')
+          .replaceAll('\'', '')
+          .replaceAll(/([a-zA-Z]+)/g, "\"$1\"")
+          .replaceAll('\n', '')
+          .replaceAll(/\s+/g, '');
+          // .replaceAll(/([0-9]+\.[0-9]+)/g, "\"$1\"");
+        // Extract the JSON string from the sanitized log
+        const jsonStr = sanitizedLog.substring(sanitizedLog.indexOf('{'), sanitizedLog.lastIndexOf('}') + 1);
+        // Parse the sanitized JSON string
+        const currentResults = JSON.parse(jsonStr);
+      
+        message.push('\nComparisons:');
+      
+        comparisons.forEach(comparisonKey => {
+          const comparisonData = testReadings[comparisonKey];
+          if (!comparisonData) return;
+
+          const [, , comparisonUrl, comparisonDate, comparisonTime] = comparisonKey.split('|');
+          message.push(`\nComparing with: ${comparisonUrl} (${comparisonDate} ${comparisonTime.replace(/-/g, ':')}):`);
+
+          // Compare metrics
+          Object.keys(currentResults.initial).forEach(metric => {
+            if (typeof currentResults.initial[metric] === 'number' && 
+                typeof comparisonData.initial[metric] === 'number') {
+              const comparison = formatMetricComparison(
+                metric,
+                currentResults.initial[metric],
+                comparisonData.initial[metric]
+              );
+
+              if (comparison) {
+                const { isImprovement, percentageChange } = comparison;
+                const icon = isImprovement ? '✅' : '❌';
+                const changeText = isImprovement ? 'improvement' : 'regression';
+                
+                message.push(`${icon} ${metric}: ${(currentResults.initial[metric] / 1000).toFixed(3)}s vs ${(comparisonData.initial[metric] / 1000).toFixed(3)}s (${Math.abs(percentageChange)}% ${changeText})`);
+              }
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error parsing test results:', error);
+        message.push('\nError: Failed to parse test results for comparison');
+      }
+    }
+  }
+  return message.join('\n');
+};

@@ -119,7 +119,8 @@ test('Load and scroll studio feed media: Initial Load and Reload', async ({ page
     description: 'Load and scroll studio feed media: Initial Load and Reload',
     performanceTestReadings: readingsJSON
   });
-  createPerformanceTestReadingsJSON(`studio-feed-performance`, readingsJSON);
+  const testName = __filename.split('/').pop().split('.')[0]
+  createPerformanceTestReadingsJSON(testName , readingsJSON);
   await testInfo.attach(`studio-feed-performance-test readings-${readingsJSON.label}`, { body: JSON.stringify(readingsJSON), contentType: 'application/json' });
 });
 

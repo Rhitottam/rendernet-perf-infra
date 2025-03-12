@@ -14,7 +14,6 @@ const auditMetricsLabelMap = {
   'interactive': 'timeToInteractive',
   'bootup-time': 'bootupTime',
 }
-
 test('Run Lighthouse audit on initial load and reload of the Canvas page', async () => {
   const lighthouse =  await import("lighthouse");
   // console.log('light house imported', lighthouse);
@@ -47,5 +46,6 @@ test('Run Lighthouse audit on initial load and reload of the Canvas page', async
   }, {});
   const readingsJSON = { initial, reload };
   console.log(readingsJSON);
-  createPerformanceTestReadingsJSON(`canvas-feed-lighthouse-metrics`, readingsJSON);
+  const testName = __filename.split('/').pop().split('.')[0]
+  createPerformanceTestReadingsJSON(testName , readingsJSON);
 });
