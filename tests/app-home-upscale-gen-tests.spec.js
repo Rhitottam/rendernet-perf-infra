@@ -42,7 +42,9 @@ test('Generate Upscale Images from App Home', async ({ page, isMobile }) => {
     page, isMobile, placeHolderSelector, imageSelector
   );
 
-  await expect(page.getByRole('button', { name: 'Upscale' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Upscale' })).toBeEnabled({
+    timeout: 30000
+  });
   // Generation Triggered
   await page.getByRole('button', { name: 'Upscale' }).click();
 

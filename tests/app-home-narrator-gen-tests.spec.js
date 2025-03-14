@@ -52,8 +52,8 @@ test('Generate Narrator Videos from App Home', async ({ page, isMobile }) => {
   await page.locator('#lip-sync-voice-selector-cont').click();
   await page.waitForSelector('#voice-selector-popover');
   await expect(page.locator('#voice-selector-popover')).toBeVisible();
-  const voiceName = await page.locator('.voice-container:nth-child(1) .voice-name').innerText();
-  await page.locator('.voice-container:nth-child(1) ').click();
+  const voiceName = await page.locator('#voice-selector-popover [role="listitem"]:nth-child(1) .voice-name').innerText();
+  await page.locator('#voice-selector-popover [role="listitem"]:nth-child(1)').click();
   await expect(page.locator('#lip-sync-voice-selector-cont')).toContainText(voiceName);
   await expect(page.getByRole('button', { name: 'Generate' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate' })).toBeEnabled();

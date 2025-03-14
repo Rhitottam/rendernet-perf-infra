@@ -1078,6 +1078,7 @@ const uploadAssetIntoAssetLibraryAndSelect = async (
   mediaSelector = null,
   type = ASSET_TYPES.IMAGE
 ) => {
+  await page.waitForSelector(placeholderSelector);
   await expect(page.locator(placeholderSelector)).toBeVisible();
   await page.locator(placeholderSelector).click();
   if(mediaSelector) {

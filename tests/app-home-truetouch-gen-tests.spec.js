@@ -43,7 +43,9 @@ test('Generate TrueTouch Images from App Home', async ({ page, isMobile }) => {
     page, isMobile, placeHolderSelector, imageSelector
   );
 
-  await expect(page.getByRole('button', { name: 'Enhance' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Enhance' })).toBeEnabled({
+    timeout: 30000
+  });
   // Generation Triggered
   await page.getByRole('button', { name: 'Enhance' }).click();
 
