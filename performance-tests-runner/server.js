@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
-const { getFileNames, readJsonFiles } = require("./utils/utils");
+const { getFileNames, readJsonFiles, readJsonFileSync } = require("./utils/utils");
 const ENV = process.env;
 // Store running processes and their logs
 const processes = new Map();
@@ -145,12 +145,12 @@ app.post('/api/run-performance-test', auth, async (req, res) => {
         try {
           // Fetch test readings for comparisons
           const testReadings = await readJsonFiles(path.join(__dirname, '../tests/utils/test-readings'));
-          
+          const messages = formatSlackMessage(processInfo, compareWith, testReadings);
           fetch(ENV.SLACK_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-type': 'application/json' },
             body: JSON.stringify({
-              text: formatSlackMessage(processInfo, compareWith, testReadings)
+              text: messages
             })
           });
         } catch (error) {
@@ -343,14 +343,16 @@ const calculatePercentageChange = (current, previous) => {
 };
 
 const formatMetricComparison = (metricName, currentValue, previousValue) => {
-  const isTimingMetric = metricName.toLowerCase().includes('time') || 
-                        metricName.toLowerCase().includes('paint') || 
+  const isTimingMetric = metricName.toLowerCase().includes('time') ||
+                        metricName.toLowerCase().includes('duration') ||
+                        metricName.toLowerCase().includes('delay') ||
+                        metricName.toLowerCase().includes('paint') ||
                         metricName.toLowerCase().includes('interactive');
   
   if (!isTimingMetric) return null; // Only compare timing metrics
 
   const percentageChange = calculatePercentageChange(currentValue, previousValue);
-  const isImprovement = currentValue < previousValue;
+  const isImprovement = currentValue <= previousValue;
 
   return {
     metric: metricName,
@@ -374,23 +376,26 @@ const formatSlackMessage = (processInfo, comparisons = [], testReadings = {}) =>
   // Add comparison results if test is completed and has comparisons
   if (processInfo.status === 'completed' && comparisons.length > 0) {
     const resultsLog = processInfo.logs.find(log => log.includes('initial'));
-    if (resultsLog) {
+    const testFileName =  processInfo.logs.find(log => log.includes('test-data|'));
+    if (resultsLog && testFileName) {
+
       try {
-        // Sanitize ANSI color codes from the log
-        const sanitizedLog = resultsLog
-          .replaceAll('[32m', '\'')
-          .replaceAll('[33m', '\'')
-          .replaceAll('[39m', '\'')
-          .replaceAll('\'', '')
-          .replaceAll(/([a-zA-Z]+)/g, "\"$1\"")
-          .replaceAll('\n', '')
-          .replaceAll(/\s+/g, '');
-          // .replaceAll(/([0-9]+\.[0-9]+)/g, "\"$1\"");
-        // Extract the JSON string from the sanitized log
-        const jsonStr = sanitizedLog.substring(sanitizedLog.indexOf('{'), sanitizedLog.lastIndexOf('}') + 1);
-        // Parse the sanitized JSON string
-        const currentResults = JSON.parse(jsonStr);
-      
+        // // Sanitize ANSI color codes from the log
+        // const sanitizedLog = resultsLog
+        //   .replaceAll('[32m', '\'')
+        //   .replaceAll('[33m', '\'')
+        //   .replaceAll('[39m', '\'')
+        //   .replaceAll('\'', '')
+        //   .replaceAll(/([a-z][a-zA-Z0-9]+)/g, "\"$1\"")
+        //   .replaceAll('\n', '')
+        //   .replaceAll(/\s+/g, '');
+        //   // .replaceAll(/([0-9]+\.[0-9]+)/g, "\"$1\"");
+        // // Extract the JSON string from the sanitized log
+        // fs.writeFileSync('sanitized-log.json', sanitizedLog);
+        // const jsonStr = readJsonFile(testFileName);
+        // // Parse the sanitized JSON string
+        // const currentResults = JSON.parse(jsonStr);
+        const currentResults = readJsonFileSync(testFileName);
         message.push('\nComparisons:');
       
         comparisons.forEach(comparisonKey => {

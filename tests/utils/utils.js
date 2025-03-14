@@ -819,7 +819,7 @@ const createPerformanceTestReadingsJSON = (label, readings, suffix= null) => {
 
   const fileName = `test-data|${label}|${process.env.BASE_URL.split(/https?:\/\//)[1].split(/\//)[0]}|${dateString}|${timeString}|${process.env.FEED_SIZE ?? 500}|.json`;
   const filePath = path.join(resultsDir, fileName);
-
+  console.log(fileName);
   fs.writeFileSync(
     filePath,
     JSON.stringify(readings, null, 2), // The '2' parameter adds pretty formatting

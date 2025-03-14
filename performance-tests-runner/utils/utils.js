@@ -19,6 +19,17 @@ function getFileNames(directory=`${__dirname}/../../tests`, fileNameCheck = (fil
   }
 }
 
+ function readJsonFileSync(fileName, directory=`${__dirname}/../../tests/utils/test-readings`) {
+  try {
+    const filePath = path.join(directory, fileName);
+    const content = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(content);
+  } catch (error) {
+    console.error(`Error reading file ${fileName}:`, error);
+    return { error: 'Failed to read file' };
+  }
+}
+
 async function readJsonFiles(directory=`${__dirname}/../../tests/utils/test-readings`,) {
   try {
     // Read all files in the directory
@@ -53,5 +64,6 @@ async function readJsonFiles(directory=`${__dirname}/../../tests/utils/test-read
 
 module.exports = {
   getFileNames,
+  readJsonFileSync,
   readJsonFiles,
 }
