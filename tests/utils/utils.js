@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const {expect} = require("@playwright/test");
 const {mockSuccessTxtToImgGenerateResponse} = require("./mocks");
+const {getStudioFeedAccordingToSize} = require("./mocks-handling/mock-utils");
 
 const loginUser = async (p) => {
   await p.goto(process.env.BASE_URL+process.env.LOGIN_PATH, {
@@ -493,16 +494,21 @@ const getBlockingTimeData = async (p) => {
 }
 
 
-// const mockAPisWithContext = async (browser) => {
+const mockAPisWithContext = async (page) => {
 //   const context = await browser.newContext();
 //   await context.route(/.*\.(png|webp)/, async route => {
 //     await route.abort();
 //   });
-//   await context.route(/.*\/app\/v1\/media\/studio\/feed\?page=1&page_size=20\.*/,  async route => {
-//     const json = feedData;
-//     console.log('normal');
-//     await route.abort();
-//   });
+  console.log('Mocking feed apis');
+  await page.route('**/studio/feed?page=1*',  async route => {
+    console.log('Mocking feed');
+    const json = getStudioFeedAccordingToSize(process.env.FEED_SIZE ?? 500);
+    await route.fulfill({ json });
+  });
+  await page.route('**/studio/feed?page=2*',  async route => {
+    const json = getStudioFeedAccordingToSize(0);
+    await route.fulfill({ json });
+  });
 //   await context.route('*/**/app/v1/media/studio/feed?page=2&page_size=20',  async route => {
 //     const json = { data: [], err: {}};
 //     await route.fulfill({ json });
@@ -513,7 +519,7 @@ const getBlockingTimeData = async (p) => {
 //     await route.fulfill({ json });
 //   });
 //   return context;
-// }
+}
 //
 // const mockAPis = async (page) => {
 //   // const context = await browser.newContext();
@@ -1296,6 +1302,7 @@ module.exports = {
   handleGenerationRouting,
   mockWebsocket,
   webSocketData,
+  mockAPisWithContext,
   uploadVideoAssetIntoAssetLibraryAndSelect,
   uploadAudioAssetIntoAssetLibraryAndSelect,
   studioFeedMusicVideoGenerationFlow,

@@ -19,7 +19,8 @@ const {
   createPerformanceTestReadingsJSON,
   constructInitialReadingsJson,
   isGeneratedMediaUrl,
-  loginUser
+  loginUser,
+  mockAPisWithContext
 } = require("./utils/utils");
 const playwright =  require('playwright');
 require('dotenv').config();
@@ -96,7 +97,8 @@ const getStudioFeedLoadAndScrollReadings = async (p, navigationType, imageLoadTi
 
 
 beforeEach(async ({ page: p }) => {
-  await loginUser(p)
+  await loginUser(p);
+  await mockAPisWithContext(p);
 });
 const map = new Map();
 test('Load and scroll studio feed media: Initial Load and Reload', async ({ page: p, browserName, isMobile }, testInfo) => {
